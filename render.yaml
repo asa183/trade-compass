@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: trade-compass
+    env: node
+    # Build command runs on Render's servers to compile the Next.js app
+    buildCommand: npm install && npm run build
+    # Start command to run the production Next.js server
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20 # Nodeのバージョンを安定版に指定します
+      - key: OPENAI_API_KEY
+        # sync: false と書くことで、セキュリティ上安全に「実際の値はRenderの画面で手動で入れる」ように指定できます
+        sync: false
