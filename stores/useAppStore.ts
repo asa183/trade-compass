@@ -18,14 +18,6 @@ import {
 import {
   dummyMarketSnapshot,
   dummyMarketRegime,
-  dummyBaskets,
-  dummyDeals,
-  dummyPaperTrades,
-  dummyUserProfile,
-  dummyNotifications,
-  dummyMarketEvents,
-  dummyPendingReviews,
-  dummyDashboardData,
   dummyDataFreshness,
 } from '@/lib/data/dummy'
 import { assessExecutionFit, selectBaskets } from '@/lib/engine'
@@ -49,7 +41,7 @@ interface AppState {
 
   // Paper Trades
   paperTrades: PaperTrade[]
-  pendingReviews: typeof dummyPendingReviews
+  pendingReviews: { id: string; trade_id: string; deal_name: string; type: 'light' | 'standard' }[]
   reviews: DealReview[]
   skipReviews: SkipReview[]
 
@@ -57,7 +49,13 @@ interface AppState {
   notifications: Notification[]
 
   // Dashboard
-  dashboardData: typeof dummyDashboardData
+  dashboardData: {
+    performance: { total_pnl: number; total_pnl_pct: number; win_rate: number; avg_win: number; avg_loss: number; risk_reward: number; expectancy: number; max_drawdown: number; trade_count: number };
+    behavior: { rule_compliance_rate: number; notification_follow_rate: number; skip_rate: number; fomo_chase_rate: number; early_exit_rate: number; late_stop_rate: number };
+    psychology: { calm_win_rate: number; anxious_win_rate: number; greedy_win_rate: number };
+    market_fit: { risk_on_win_rate: number; risk_off_win_rate: number; high_vol_win_rate: number; rate_decline_win_rate: number };
+    insights: { category: 'behavior' | 'psychology' | 'performance' | 'market-fit'; title: string; suggestion: string; severity: 'positive' | 'warning' | 'negative' }[];
+  }
 
   // UI state
   isLoading: boolean
@@ -74,48 +72,38 @@ interface AppState {
   skipDeal: (dealId: string, reason: string) => void
   submitSkipReview: (skipId: string, review: Partial<SkipReview>) => void
   markNotificationRead: (id: string) => void
-  refreshMarket: () => void
+  fetchMarketData: () => Promise<void>
 }
 
 export const useAppStore = create<AppState>()((set, get) => ({
   // Initial state
-  user: {
-    id: 'user-001',
-    email: 'demo@tradecompass.app',
-    display_name: 'デモユーザー',
-    created_at: new Date().toISOString(),
-  },
-  isOnboarded: true,
-  profile: dummyUserProfile,
+  user: null,
+  isOnboarded: false,
+  profile: null,
 
+  // Keep dummy as fallback until fetched, or just use dummy structure and overwrite soon
   marketSnapshot: dummyMarketSnapshot,
   marketRegime: dummyMarketRegime,
-  marketEvents: dummyMarketEvents,
+  marketEvents: [],
   dataFreshness: dummyDataFreshness,
 
-  baskets: dummyBaskets,
+  baskets: [],
   basketRecommendations: [],
-  deals: dummyDeals.map((deal) => ({
-    ...deal,
-    execution_fit: assessExecutionFit(
-      deal,
-      dummyUserProfile,
-      dummyPaperTrades.map((t) => ({
-        rule_followed: t.rule_followed ?? true,
-        emotion_state_entry: t.emotion_state_entry ?? 'calm',
-      })),
-      true, // hasHighVolEvent
-      dummyMarketSnapshot.vix
-    ),
-  })),
+  deals: [],
 
-  paperTrades: dummyPaperTrades,
-  pendingReviews: dummyPendingReviews,
+  paperTrades: [],
+  pendingReviews: [],
   reviews: [],
   skipReviews: [],
 
-  notifications: dummyNotifications,
-  dashboardData: dummyDashboardData,
+  notifications: [],
+  dashboardData: {
+    performance: { total_pnl: 0, total_pnl_pct: 0, win_rate: 0, avg_win: 0, avg_loss: 0, risk_reward: 0, expectancy: 0, max_drawdown: 0, trade_count: 0 },
+    behavior: { rule_compliance_rate: 0, notification_follow_rate: 0, skip_rate: 0, fomo_chase_rate: 0, early_exit_rate: 0, late_stop_rate: 0 },
+    psychology: { calm_win_rate: 0, anxious_win_rate: 0, greedy_win_rate: 0 },
+    market_fit: { risk_on_win_rate: 0, risk_off_win_rate: 0, high_vol_win_rate: 0, rate_decline_win_rate: 0 },
+    insights: []
+  },
 
   isLoading: false,
   activeTab: 'home',
@@ -222,7 +210,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }
     set((state) => ({
       reviews: [newReview, ...state.reviews],
-      pendingReviews: state.pendingReviews.filter((r) => r.trade_id !== tradeId),
+      pendingReviews: state.pendingReviews.filter((r: { trade_id: string }) => r.trade_id !== tradeId),
     }))
   },
 
@@ -253,12 +241,26 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }))
   },
 
-  refreshMarket: () => {
+  fetchMarketData: async () => {
     set({ isLoading: true })
-    setTimeout(() => {
-      // Simulate a refresh — in production, fetch from API
-      const recs = selectBaskets(get().marketRegime, get().profile!, get().baskets)
-      set({ basketRecommendations: recs, isLoading: false })
-    }, 1200)
+    try {
+      const res = await fetch('/api/market')
+      if (res.ok) {
+        const data = await res.json()
+        set({
+          marketSnapshot: data.snapshot,
+          dataFreshness: {
+            scope: 'market',
+            last_updated_at: data.snapshot.timestamp,
+            next_expected_update_at: new Date(Date.now() + 1000 * 60 * 15).toISOString(),
+            label: 'fresh'
+          }
+        })
+      }
+    } catch (err) {
+      console.error('Failed to fetch market data', err)
+    } finally {
+      set({ isLoading: false })
+    }
   },
 }))

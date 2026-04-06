@@ -52,7 +52,7 @@ export default function HomePage() {
     notifications,
     basketRecommendations,
     baskets,
-    refreshMarket,
+    fetchMarketData,
     isLoading,
     profile,
     dataFreshness,
@@ -62,7 +62,7 @@ export default function HomePage() {
   useEffect(() => {
     if (!user) { router.push('/login'); return }
     if (!isOnboarded) { router.push('/onboarding'); return }
-    refreshMarket()
+    fetchMarketData()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -349,7 +349,7 @@ export default function HomePage() {
       {/* ===== データ更新ボタン ===== */}
       <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 8 }}>
         <button
-          onClick={refreshMarket}
+          onClick={fetchMarketData}
           disabled={isLoading}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,

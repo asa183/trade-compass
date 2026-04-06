@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { MarketInitializer } from '@/components/MarketInitializer'
 import {
   LayoutDashboard,
   TrendingUp,
@@ -38,6 +39,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg-primary)' }}>
+      <MarketInitializer />
+
       {/* Top Bar */}
       <header className="top-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
