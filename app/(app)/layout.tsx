@@ -16,6 +16,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import clsx from 'clsx'
+import { ToastContainer } from '@/components/ui/ToastContainer'
 
 const NAV_ITEMS = [
   { href: '/home', icon: LayoutDashboard, label: 'ホーム', id: 'home' },
@@ -138,6 +139,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )
         })}
       </nav>
+
+      {/* Global Toast Notifications */}
+      <ToastContainer />
     </div>
   )
 }

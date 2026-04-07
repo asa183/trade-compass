@@ -2,8 +2,10 @@
 
 import { useAppStore } from '@/stores/useAppStore'
 import Link from 'next/link'
+import { useState } from 'react'
 import { TrendingUp, ChevronRight, Shield, Zap, BarChart2 } from 'lucide-react'
 import { Basket } from '@/types'
+import { getConfidenceColor, getConfidenceColorClass } from '@/lib/ui'
 
 const CATEGORY_CONFIG = {
   'core-index': { label: 'コア指数型', color: 'var(--accent)', bg: 'var(--accent-dim)', icon: BarChart2 },
@@ -79,10 +81,10 @@ function BasketCard({ basket, priority }: { basket: Basket; priority?: number })
           <div style={{ flex: 1, marginRight: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
               <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>確信度</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>{basket.confidence_score}%</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: getConfidenceColor(basket.confidence_score) }}>{basket.confidence_score}%</span>
             </div>
-            <div className="score-bar-track" style={{ height: 4 }}>
-              <div className="score-bar-fill accent" style={{ width: `${basket.confidence_score}%` }} />
+            <div className={`score-bar-track`} style={{ height: 4 }}>
+              <div className={`score-bar-fill ${getConfidenceColorClass(basket.confidence_score)}`} style={{ width: `${basket.confidence_score}%` }} />
             </div>
           </div>
           <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
@@ -96,20 +98,90 @@ function BasketCard({ basket, priority }: { basket: Basket; priority?: number })
 
 export default function BasketsPage() {
   const { baskets, basketRecommendations } = useAppStore()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [activeCategory, setActiveCategory] = useState<string>('all')
 
-  const categories = ['core-index', 'sector', 'style', 'defensive'] as const
+  const categories = [
+    { id: 'all', label: 'すべて' },
+    { id: 'core-index', label: 'コア指数' },
+    { id: 'sector', label: 'セクター' },
+    { id: 'style', label: 'テーマ・スタイル' }, // Assuming 'style' encompasses theme
+    { id: 'defensive', label: '防御型' }
+  ]
+
+  const filteredBaskets = baskets.filter((b) => {
+    const matchesSearch = 
+      b.name_ja.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      b.etfs.some(e => e.ticker.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      b.background_logic.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    const matchesCategory = activeCategory === 'all' || b.category === activeCategory
+
+    return matchesSearch && matchesCategory
+  })
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', paddingTop: 8 }}>
-        候補バスケット
-      </h1>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ paddingTop: 8 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>
+          探索・バスケット
+        </h1>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+          50以上の投資テーマやインデックスを探索できます
+        </p>
+      </div>
 
-      {/* 今日の推奨バスケット */}
-      {basketRecommendations.length > 0 && (
-        <div>
+      {/* 検索 */}
+      <div style={{ 
+        display: 'flex', alignItems: 'center', gap: 8, 
+        background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)', 
+        borderRadius: 'var(--radius-lg)', padding: '0 12px', height: 44 
+      }}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)' }}>
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input 
+          type="text" 
+          placeholder="ティッカー、テーマ名で検索..." 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', 
+            fontSize: 14, outline: 'none'
+          }}
+        />
+        {searchQuery && (
+          <button style={{ background: 'none', border: 'none', padding: 4, color: 'var(--text-muted)', cursor: 'pointer' }} onClick={() => setSearchQuery('')}>
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        )}
+      </div>
+
+      {/* タブ */}
+      <div className="horizontal-scroll" style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
+        {categories.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setActiveCategory(cat.id)}
+            style={{
+              padding: '6px 14px', borderRadius: 'var(--radius-full)', fontSize: 13, fontWeight: 600, flexShrink: 0,
+              background: activeCategory === cat.id ? 'var(--accent)' : 'var(--bg-elevated)',
+              color: activeCategory === cat.id ? '#fff' : 'var(--text-secondary)',
+              border: `1px solid ${activeCategory === cat.id ? 'var(--accent)' : 'var(--border-strong)'}`,
+              transition: 'all 0.2s', cursor: 'pointer'
+            }}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 今日の推奨 (検索なし、全件表示のときのみ) */}
+      {searchQuery === '' && activeCategory === 'all' && basketRecommendations.length > 0 && (
+        <div style={{ marginTop: 8 }}>
           <div className="section-header">
-            <span className="section-title">今日の推奨バスケット</span>
+            <span className="section-title">✨ 今日の推奨バスケット</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {basketRecommendations.map((rec) => (
@@ -119,24 +191,28 @@ export default function BasketsPage() {
         </div>
       )}
 
-      {/* カテゴリ別 */}
-      {categories.map((cat) => {
-        const catBaskets = baskets.filter((b) => b.category === cat)
-        if (catBaskets.length === 0) return null
-        const conf = CATEGORY_CONFIG[cat]
-        return (
-          <div key={cat}>
-            <div className="section-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="section-title">{conf.label}</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {catBaskets.map((b) => <BasketCard key={b.id} basket={b} />)}
-            </div>
+      {/* バスケット一覧 */}
+      <div style={{ marginTop: searchQuery === '' && activeCategory === 'all' && basketRecommendations.length > 0 ? 16 : 0 }}>
+        {!(searchQuery === '' && activeCategory === 'all' && basketRecommendations.length > 0) && (
+          <div className="section-header">
+            <span className="section-title">
+              {searchQuery ? '検索結果' : categories.find(c => c.id === activeCategory)?.label}
+              <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>{filteredBaskets.length}件</span>
+            </span>
           </div>
-        )
-      })}
+        )}
+        
+        {filteredBaskets.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+            <div style={{ fontSize: 13 }}>条件に一致するバスケットが見つかりません。</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {filteredBaskets.map((b) => <BasketCard key={b.id} basket={b} />)}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

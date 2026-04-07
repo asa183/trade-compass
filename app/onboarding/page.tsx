@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useAppStore } from '@/stores/useAppStore'
 import { useRouter } from 'next/navigation'
 import { OnboardingAnswers } from '@/types'
-import { ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react'
+import { ChevronRight, ChevronLeft, CheckCircle, X } from 'lucide-react'
 
 const STEPS = 5
 
@@ -87,12 +87,46 @@ export default function OnboardingPage() {
     }
   }
 
+  const handleSkipOnboarding = async () => {
+    setIsSaving(true)
+    try {
+      const defaultAnswers: OnboardingAnswers = {
+        experience_level: answers.experience_level || 'beginner',
+        hold_period: answers.hold_period || 'mid',
+        risk_tolerance: answers.risk_tolerance || 'medium',
+        profit_taking_style: answers.profit_taking_style || 'early',
+        investment_goal: answers.investment_goal || 'growth',
+        anxiety_triggers: answers.anxiety_triggers || [],
+        interest_areas: answers.interest_areas || [],
+      }
+      await completeOnboarding(defaultAnswers)
+      router.push('/home')
+    } catch (err: any) {
+      alert('保存に失敗しました: ' + (err.message || String(err)))
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column' }}>
-      {/* ブランド */}
-      <div style={{ padding: '24px 20px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 32, height: 32, background: 'var(--accent)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: 'white' }}>TC</div>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Trade Compass</span>
+      {/* ブランド / トップへ戻る */}
+      <div style={{ padding: '24px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 32, height: 32, background: 'var(--accent)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: 'white' }}>TC</div>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Trade Compass</span>
+        </div>
+        <button
+          onClick={handleSkipOnboarding}
+          disabled={isSaving}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'none', border: 'none', padding: '6px 12px',
+            borderRadius: 'var(--radius-full)', backgroundColor: 'var(--bg-secondary)',
+            color: 'var(--text-secondary)', fontSize: 12, fontWeight: 600, cursor: 'pointer'
+          }}>
+          <X size={14} /> トップへ戻る
+        </button>
       </div>
 
       {/* プログレスバー */}

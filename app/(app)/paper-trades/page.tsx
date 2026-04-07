@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppStore } from '@/stores/useAppStore'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown, Clock, CheckCircle, XCircle, Minus } from 'lucide-react'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -11,15 +11,44 @@ export default function PaperTradesPage() {
   const [closeModal, setCloseModal] = useState<{ tradeId: string; entryPrice: number } | null>(null)
   const [exitPrice, setExitPrice] = useState('')
   const [exitReason, setExitReason] = useState<'take-profit' | 'stop-loss' | 'manual'>('manual')
+  const [liveQuotes, setLiveQuotes] = useState<Record<string, number>>({})
 
   const openTrades = paperTrades.filter((t) => t.status === 'open')
   const closedTrades = paperTrades.filter((t) => t.status === 'closed')
 
-  const handleClose = () => {
+  useEffect(() => {
+    async function fetchQuotes() {
+      if (openTrades.length === 0) return
+      
+      const symbols = Array.from(new Set(openTrades.map(t => t.deal.target_etfs[0]?.ticker).filter(Boolean)))
+      if (symbols.length === 0) return
+      
+      try {
+        const res = await fetch(`/api/market/quotes?symbols=${symbols.join(',')}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.quotes) {
+            setLiveQuotes(prev => ({ ...prev, ...data.quotes }))
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch live quotes', err)
+      }
+    }
+    
+    fetchQuotes()
+    const intervalId = setInterval(fetchQuotes, 60000)
+    return () => clearInterval(intervalId)
+  }, [openTrades])
+
+
+  const handleClose = async () => {
     if (!closeModal) return
-    closePaperTrade(closeModal.tradeId, parseFloat(exitPrice), exitReason)
+    const { showToast } = useAppStore.getState()
+    await closePaperTrade(closeModal.tradeId, parseFloat(exitPrice), exitReason)
     setCloseModal(null)
     setExitPrice('')
+    showToast('模擬ディールを決済しました！振り返りを記録しましょう', 'success')
   }
 
   function PnlDisplay({ pct, pnl }: { pct?: number; pnl?: number }) {
@@ -79,26 +108,45 @@ export default function PaperTradesPage() {
                   </span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
-                  <div style={{ background: 'var(--bg-elevated)', borderRadius: 8, padding: '8px 10px' }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>エントリー価格</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
-                      ${t.entry_price.toFixed(2)}
-                    </div>
-                  </div>
-                  <div style={{ background: 'var(--bg-elevated)', borderRadius: 8, padding: '8px 10px' }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>仮想投資額</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
-                      ¥{t.virtual_amount.toLocaleString()}
-                    </div>
-                  </div>
-                  <div style={{ background: 'var(--bg-elevated)', borderRadius: 8, padding: '8px 10px' }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>開始日</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
-                      {format(new Date(t.entry_date), 'M/d', { locale: ja })}
-                    </div>
-                  </div>
+                <div style={{ display: 'flex', gap: 16, fontSize: 11, color: 'var(--text-muted)', marginBottom: 12 }}>
+                  <div>仮想投資額: <strong>¥{t.virtual_amount.toLocaleString()}</strong></div>
+                  <div>開始日: <strong>{format(new Date(t.entry_date), 'M/d', { locale: ja })}</strong></div>
                 </div>
+
+                {(() => {
+                  const targetTicker = t.deal.target_etfs[0]?.ticker
+                  const currentPrice = targetTicker ? liveQuotes[targetTicker] : undefined
+                  const diffPct = currentPrice ? ((currentPrice - t.entry_price) / t.entry_price) * 100 : undefined
+                  const isUp = diffPct !== undefined && diffPct >= 0
+                  
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+                      <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-strong)', borderRadius: 10, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Clock size={12} /> 実行時（エントリー）価格
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>
+                          ${t.entry_price.toFixed(2)}
+                        </div>
+                      </div>
+                      
+                      <div style={{ background: 'var(--bg-elevated)', border: `1px solid ${currentPrice ? (isUp ? 'rgba(74,186,135,0.4)' : 'rgba(208,90,90,0.4)') : 'var(--border-strong)'}`, borderRadius: 10, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>現在の価格</span>
+                          {diffPct !== undefined && (
+                            <span style={{ color: isUp ? 'var(--success)' : 'var(--danger)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 2 }}>
+                              {isUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                              {isUp ? '+' : ''}{diffPct.toFixed(2)}%
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: currentPrice ? (isUp ? 'var(--success)' : 'var(--danger)') : 'var(--text-primary)' }}>
+                          {currentPrice ? `$${currentPrice.toFixed(2)}` : '取得中...'}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12, fontSize: 11 }}>
                   <div style={{ background: 'var(--success-dim)', borderRadius: 8, padding: '6px 8px' }}>
@@ -114,7 +162,13 @@ export default function PaperTradesPage() {
                 <button
                   className="btn btn-secondary btn-full"
                   style={{ fontSize: 13 }}
-                  onClick={() => { setCloseModal({ tradeId: t.id, entryPrice: t.entry_price }); setExitPrice(t.entry_price.toFixed(2)) }}
+                  onClick={() => { 
+                    const targetTicker = t.deal.target_etfs[0]?.ticker
+                    const currentPrice = targetTicker ? liveQuotes[targetTicker] : undefined
+                    const prefillPrice = currentPrice ?? t.entry_price
+                    setCloseModal({ tradeId: t.id, entryPrice: t.entry_price }); 
+                    setExitPrice(prefillPrice.toFixed(2)) 
+                  }}
                 >
                   クローズ（手動終了）
                 </button>

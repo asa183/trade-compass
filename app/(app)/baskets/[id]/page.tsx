@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, TrendingUp, AlertTriangle, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { useState } from 'react'
 import Link from 'next/link'
+import { getConfidenceColor, getConfidenceColorClass } from '@/lib/ui'
 
 export default function BasketDetailPage() {
   const { id } = useParams()
@@ -51,10 +52,10 @@ export default function BasketDetailPage() {
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>確信度</span>
-          <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent)' }}>{basket.confidence_score}%</span>
+          <span style={{ fontSize: 24, fontWeight: 800, color: getConfidenceColor(basket.confidence_score) }}>{basket.confidence_score}%</span>
         </div>
         <div className="score-bar-track" style={{ height: 8 }}>
-          <div className="score-bar-fill accent" style={{ width: `${basket.confidence_score}%` }} />
+          <div className={`score-bar-fill ${getConfidenceColorClass(basket.confidence_score)}`} style={{ width: `${basket.confidence_score}%` }} />
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
           {basket.confidence_score >= 75 ? '確信度が高い局面です' : basket.confidence_score >= 60 ? '条件はそろいつつあります' : '不確実性が高め。慎重に。'}

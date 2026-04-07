@@ -7,6 +7,7 @@ import { Deal } from '@/types'
 
 const RISK_LABEL: Record<string, string> = { low: '低', medium: '中', high: '高', 'very-high': '最高' }
 const RISK_COLOR: Record<string, string> = { low: 'var(--success)', medium: 'var(--warning)', high: 'var(--danger)', 'very-high': '#e05757' }
+const REC_LEVEL_COLORS: Record<string, string> = { S: '#FFD700', A: 'var(--accent)', B: 'var(--success)', C: 'var(--text-muted)' }
 const SIZE_CONFIG = {
   skip: { label: '見送り推奨', color: 'var(--danger)', bg: 'var(--danger-dim)' },
   paper: { label: '模擬推奨', color: 'var(--accent)', bg: 'var(--accent-dim)' },
@@ -18,12 +19,20 @@ function DealCard({ deal }: { deal: Deal }) {
   const fit = deal.execution_fit
   const fitConf = fit ? SIZE_CONFIG[fit.size_recommendation] : SIZE_CONFIG.paper
   const riskColor = RISK_COLOR[deal.risk_level]
+  const recColor = deal.recommendation_level ? REC_LEVEL_COLORS[deal.recommendation_level] || 'var(--text-muted)' : 'var(--text-muted)'
 
   return (
     <Link href={`/deals/${deal.id}`} style={{ textDecoration: 'none' }}>
-      <div className="card-interactive">
+      <div className="card-interactive" style={{ position: 'relative' }}>
+        
+        {deal.recommendation_level && (
+          <div style={{ position: 'absolute', top: -10, right: 10, background: recColor, color: '#000', fontWeight: 900, padding: '4px 12px', borderRadius: 12, fontSize: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            Rank {deal.recommendation_level}
+          </div>
+        )}
+
         {/* Header row */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, marginTop: deal.recommendation_level ? 6 : 0 }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>
               {deal.name_ja}
@@ -44,6 +53,13 @@ function DealCard({ deal }: { deal: Deal }) {
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 10 }}>
           {deal.recommended_action}
         </p>
+
+        {/* 根拠 */}
+        {deal.recommendation_rationale && (
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg-elevated)', padding: '8px 10px', borderRadius: 6, marginBottom: 10, lineHeight: 1.5 }}>
+            <strong style={{ color: 'var(--text-primary)' }}>選定理由:</strong> {deal.recommendation_rationale}
+          </div>
+        )}
 
         {/* ロジックライン */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>

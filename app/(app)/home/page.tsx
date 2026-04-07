@@ -1,6 +1,7 @@
 'use client'
 
 import { useAppStore } from '@/stores/useAppStore'
+import { getConfidenceColor } from '@/lib/ui'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
@@ -112,7 +113,7 @@ export default function HomePage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* ===== ヘッダー: データ鮮度 (Glassmorphism) ===== */}
+      {/* ===== ヘッダー: データ鮮度 (Glassmorphism) & 手動更新 ===== */}
       <div className="glass-panel" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ 
@@ -124,9 +125,26 @@ export default function HomePage() {
             {dataFreshness.label === 'fresh' ? '市場データ同期完了' : 'データ取得中...'}
           </span>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Clock size={12} />
-          {safeFormatDate(dataFreshness.last_updated_at)} 更新
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Clock size={12} />
+            {safeFormatDate(dataFreshness.last_updated_at)}
+          </div>
+          <button 
+            disabled={isLoading}
+            onClick={async () => {
+              await fetchMarketData()
+              await fetchDeals()
+            }}
+            style={{ 
+              background: 'none', border: 'none', padding: 4, cursor: isLoading ? 'default' : 'pointer',
+              color: isLoading ? 'var(--text-muted)' : 'var(--accent)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
+          >
+            <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} style={isLoading ? { animation: 'spin 1s linear infinite' } : {}} />
+            <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+          </button>
         </div>
       </div>
 
@@ -303,7 +321,7 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: getConfidenceColor(basket.confidence_score) }}>
                     {basket.confidence_score}%
                   </span>
                   <ChevronRight size={14} color="var(--text-muted)" />
@@ -317,22 +335,32 @@ export default function HomePage() {
       {/* ===== 新着ディール ===== */}
       <div>
         <div className="section-header">
-          <span className="section-title">新着ディール</span>
+          <span className="section-title">注目のディール</span>
           <Link href="/deals" className="section-link">すべて見る</Link>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {activeDeals.map((deal) => {
             const fit = deal.execution_fit
             const fitConf = fit ? SIZE_CONFIG[fit.size_recommendation] : SIZE_CONFIG.paper
+            const REC_LEVEL_COLORS: Record<string, string> = { S: '#FFD700', A: 'var(--accent)', B: 'var(--success)', C: 'var(--text-muted)' }
+            const recColor = deal.recommendation_level ? REC_LEVEL_COLORS[deal.recommendation_level] || 'var(--text-muted)' : 'var(--text-muted)'
+            
             return (
               <Link key={deal.id} href={`/deals/${deal.id}`} style={{ textDecoration: 'none' }}>
-                <div className="card-interactive">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <div className="card-interactive" style={{ position: 'relative' }}>
+                  
+                  {deal.recommendation_level && (
+                    <div style={{ position: 'absolute', top: -10, right: 10, background: recColor, color: '#000', fontWeight: 900, padding: '4px 12px', borderRadius: 12, fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                      Rank {deal.recommendation_level}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, marginTop: deal.recommendation_level ? 6 : 0 }}>
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
                         {deal.name_ja}
                       </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {deal.target_etfs.map((e) => (
                           <span key={e.ticker} className="badge badge-accent">{e.ticker}</span>
                         ))}

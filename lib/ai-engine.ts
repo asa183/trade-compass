@@ -51,7 +51,13 @@ export async function generateDeals() {
   
   const { data: baskets, error } = await supabase.from('baskets').select('*')
   if (error || !baskets) throw new Error('Failed to fetch baskets for AI engine')
-  
+  const slimBaskets = baskets.map(b => ({
+    id: b.id,
+    name: b.name,
+    etfs: b.etfs.map((e: any) => e.ticker).join(', '),
+    logic: b.background_logic
+  }))
+
   const { object: deals } = await generateObject({
     model: openai('o3-mini'),
     schema: z.object({
@@ -64,6 +70,8 @@ export async function generateDeals() {
           name: z.string(),
           description: z.string()
         })),
+        recommendation_level: z.enum(['S', 'A', 'B', 'C']),
+        recommendation_rationale: z.string(),
         recommended_action: z.string(),
         entry_condition: z.string(),
         take_profit_line: z.string(),
@@ -75,17 +83,17 @@ export async function generateDeals() {
         counter_scenario: z.string(),
         similar_past_case: z.string(),
         event_caution_note: z.string()
-      })).max(3)
+      })).max(5)
     }),
     prompt: `あなたは熟練の機関投資家・ストラテジストです。
-現在の市場レジーム（相場環境）と利用可能なバスケット一覧から、今最も実行すべき投資推奨行動（ディール）を1〜3つ選別し、具体的な売買プランを生成してください。
-日本語で記述してください。
+現在の市場レジーム（相場環境）と利用可能なバスケット一覧から、今最も実行すべき投資推奨行動（ディール）を最大5つ選別し、具体的な売買プランを生成してください。
+日本語で記述してください。各ディールには、おすすめ度（S, A, B, C）とその根拠（rationale）を含めてください。
 
 現在のレジーム:
 ${JSON.stringify(regime, null, 2)}
 
-利用可能なバスケット一覧:
-${JSON.stringify(baskets, null, 2)}
+利用可能なバスケット一覧 (軽量版):
+${JSON.stringify(slimBaskets, null, 2)}
 
 各ディールのbasket_idは、選んだバスケットのidと正確に一致させてください。
 `

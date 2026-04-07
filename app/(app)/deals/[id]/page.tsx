@@ -7,6 +7,7 @@ import {
   ArrowLeft, AlertTriangle, CheckCircle, XCircle, Clock,
   TrendingUp, TrendingDown, User, Zap, BookOpen, ChevronDown, ChevronUp,
 } from 'lucide-react'
+import { getConfidenceColor } from '@/lib/ui'
 
 const SIZE_CONFIG = {
   skip: { label: '今回は見送りが有力', color: 'var(--danger)', bg: 'var(--danger-dim)' },
@@ -17,7 +18,8 @@ const SIZE_CONFIG = {
 
 export default function DealDetailPage() {
   const { id } = useParams()
-  const { deals, startPaperTrade, skipDeal } = useAppStore()
+  const { deals, startPaperTrade, skipDeal, paperTrades, skipReviews } = useAppStore()
+
   const router = useRouter()
   const [showInvalidation, setShowInvalidation] = useState(false)
   const [showCounterScenario, setShowCounterScenario] = useState(false)
@@ -44,6 +46,13 @@ export default function DealDetailPage() {
   const allChecked = Object.values(checkList).every(Boolean)
   const riskColor = { low: 'var(--success)', medium: 'var(--warning)', high: 'var(--danger)', 'very-high': '#e05757' }[deal.risk_level]
 
+  // 重複チェック
+  const activePaperTrade = paperTrades.find(t => t.deal_id === id && t.status === 'open')
+  const isSkipped = skipReviews.some(r => r.deal_id === id)
+
+  const REC_LEVEL_COLORS: Record<string, string> = { S: '#FFD700', A: 'var(--accent)', B: 'var(--success)', C: 'var(--text-muted)' }
+  const recColor = deal.recommendation_level ? REC_LEVEL_COLORS[deal.recommendation_level] || 'var(--text-muted)' : 'var(--text-muted)'
+
   const handlePaperStart = () => {
     startPaperTrade(deal.id, parseInt(amount))
     setShowPaperModal(false)
@@ -63,14 +72,19 @@ export default function DealDetailPage() {
         <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, marginBottom: 12, padding: 0 }}>
           <ArrowLeft size={16} /> 戻る
         </button>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
+          {deal.recommendation_level && (
+            <span style={{ fontSize: 12, padding: '4px 12px', borderRadius: 'var(--radius-full)', background: recColor, color: '#000', fontWeight: 900 }}>
+              Rank {deal.recommendation_level}
+            </span>
+          )}
           {deal.target_etfs.map((e) => (
             <span key={e.ticker} className="badge badge-accent">{e.ticker}</span>
           ))}
           <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--radius-full)', background: `${riskColor}1a`, color: riskColor, fontWeight: 600 }}>
             リスク{deal.risk_level}
           </span>
-          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--radius-full)', background: 'var(--accent-dim)', color: 'var(--accent)', fontWeight: 600 }}>
+          <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--radius-full)', background: `${getConfidenceColor(deal.confidence_score)}22`, color: getConfidenceColor(deal.confidence_score), fontWeight: 600 }}>
             確信度 {deal.confidence_score}%
           </span>
         </div>
@@ -79,10 +93,18 @@ export default function DealDetailPage() {
         </h1>
       </div>
 
-      {/* 推奨アクション */}
+      {/* 推奨アクションと根拠 */}
       <div style={{ padding: '14px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>推奨アクション</div>
-        <p style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.7 }}>{deal.recommended_action}</p>
+        <p style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.7, marginBottom: deal.recommendation_rationale ? 12 : 0 }}>{deal.recommended_action}</p>
+        
+        {deal.recommendation_rationale && (
+          <>
+            <div style={{ width: '100%', height: 1, background: 'var(--border)', margin: '12px 0' }} />
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>抽出ロジック（根拠）</div>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{deal.recommendation_rationale}</p>
+          </>
+        )}
       </div>
 
       {/* イベント前注意 */}
@@ -228,55 +250,80 @@ export default function DealDetailPage() {
         <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{deal.similar_past_case}</p>
       </div>
 
-      {/* === 実行前チェック === */}
-      <div className="card">
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12 }}>
-          <BookOpen size={14} style={{ display: 'inline', marginRight: 6 }} />
-          実行前チェック
-        </div>
-        {[
-          { key: 'understood' as const, label: 'このディール内容を理解した' },
-          { key: 'riskOk' as const, label: 'リスクは自分の許容範囲内である' },
-          { key: 'calm' as const, label: '今の感情は冷静である' },
-        ].map(({ key, label }) => (
-          <div
-            key={key}
-            onClick={() => setCheckList(prev => ({ ...prev, [key]: !prev[key] }))}
-            style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px', borderRadius: 8, cursor: 'pointer', marginBottom: 6, background: checkList[key] ? 'var(--success-dim)' : 'var(--bg-elevated)', border: `1px solid ${checkList[key] ? 'rgba(74,186,135,0.3)' : 'var(--border)'}`, transition: 'all 0.15s ease' }}
-          >
-            <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${checkList[key] ? 'var(--success)' : 'var(--border-strong)'}`, background: checkList[key] ? 'var(--success)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {checkList[key] && <CheckCircle size={12} color="white" />}
-            </div>
-            <span style={{ fontSize: 13, color: checkList[key] ? 'var(--success)' : 'var(--text-secondary)' }}>{label}</span>
+      {/* アクション制御：重複チェックに基づく出し分け */}
+      {activePaperTrade ? (
+        <div className="glass-panel" style={{ padding: '16px', background: 'linear-gradient(135deg, var(--accent-dim), rgba(26, 32, 53, 0.4))', border: '1px solid rgba(91,138,244,0.3)', textAlign: 'center' }}>
+          <Zap size={24} color="var(--accent)" style={{ margin: '0 auto 8px' }} />
+          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--accent)', marginBottom: 8 }}>
+            現在このディールは実行中です
           </div>
-        ))}
-      </div>
-
-      {/* アクションボタン群 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <button
-          onClick={() => { setShowPaperModal(true); setAction('paper') }}
-          disabled={!allChecked}
-          className="btn btn-primary"
-          style={{ opacity: allChecked ? 1 : 0.4 }}
-        >
-          模擬で試す
-        </button>
-        <button
-          className="btn btn-ghost"
-          onClick={() => setShowSkipModal(true)}
-        >
-          今回は見送る
-        </button>
-      </div>
-
-      {action === 'skip' && (
-        <div className="glass-panel" style={{ padding: '12px 14px', background: 'linear-gradient(135deg, var(--accent-dim), rgba(26, 32, 53, 0.4))', border: '1px solid rgba(91,138,244,0.25)' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>見送りを記録しました</div>
-          <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            見送りは正当な判断です。後日「振り返り」タブから振り返りを通じて冷静な判断結果を確認できます。
+          <button 
+            className="btn btn-primary btn-full" 
+            onClick={() => router.push('/paper-trades')}
+          >
+            ペーパートレード画面を見る
+          </button>
+        </div>
+      ) : isSkipped || action === 'skip' ? (
+        <div className="glass-panel" style={{ padding: '16px', background: 'linear-gradient(135deg, var(--bg-elevated), rgba(26, 32, 53, 0.4))', border: '1px solid var(--border)', textAlign: 'center' }}>
+          <CheckCircle size={24} color="var(--text-muted)" style={{ margin: '0 auto 8px' }} />
+          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-secondary)', marginBottom: 8 }}>
+            このディールは見送りを記録済みです
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 12 }}>
+            見送りは正当な判断です。後日「振り返り」タブから冷静な判断結果を確認できます。
           </p>
         </div>
+      ) : (
+        <>
+          {/* === 実行前チェック === */}
+          <div className="card">
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 12 }}>
+              <BookOpen size={14} style={{ display: 'inline', marginRight: 6 }} />
+              実行前チェック
+            </div>
+            {[
+              { key: 'understood' as const, label: 'このディール内容を理解した' },
+              { key: 'riskOk' as const, label: 'リスクは自分の許容範囲内である' },
+              { key: 'calm' as const, label: '今の感情は冷静である' },
+            ].map(({ key, label }) => (
+              <div
+                key={key}
+                onClick={() => setCheckList(prev => ({ ...prev, [key]: !prev[key] }))}
+                style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px', borderRadius: 8, cursor: 'pointer', marginBottom: 6, background: checkList[key] ? 'var(--success-dim)' : 'var(--bg-elevated)', border: `1px solid ${checkList[key] ? 'rgba(74,186,135,0.3)' : 'var(--border)'}`, transition: 'all 0.15s ease' }}
+              >
+                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${checkList[key] ? 'var(--success)' : 'var(--border-strong)'}`, background: checkList[key] ? 'var(--success)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {checkList[key] && <CheckCircle size={12} color="white" />}
+                </div>
+                <span style={{ fontSize: 13, color: checkList[key] ? 'var(--success)' : 'var(--text-secondary)' }}>{label}</span>
+              </div>
+            ))}
+          </div>
+
+          {!allChecked && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginBottom: -4 }}>
+              👆 実行前チェックをすべて完了するとボタンが押せます
+            </div>
+          )}
+
+          {/* アクションボタン群 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <button
+              onClick={() => { setShowPaperModal(true); setAction('paper') }}
+              disabled={!allChecked}
+              className="btn btn-primary"
+              style={{ opacity: allChecked ? 1 : 0.4 }}
+            >
+              模擬で試す
+            </button>
+            <button
+              className="btn btn-ghost"
+              onClick={() => setShowSkipModal(true)}
+            >
+              今回は見送る
+            </button>
+          </div>
+        </>
       )}
 
       {/* 見送りモーダル */}

@@ -15,7 +15,14 @@ import {
   DataFreshnessStatus,
   SkipReview,
 } from '@/types'
+
+export interface Toast {
+  id: string
+  message: string
+  type: 'success' | 'error' | 'info'
+}
 import { assessExecutionFit, selectBaskets } from '@/lib/engine'
+import { calculateDashboardData } from '@/lib/calculateDashboard'
 
 // Initial Empty Data
 const emptyMarketSnapshot: MarketSnapshot = {
@@ -70,6 +77,7 @@ interface AppState {
   // UI state
   isLoading: boolean
   activeTab: string
+  toasts: Toast[]
 
   // Actions
   login: (email: string, name: string, id: string) => void
@@ -87,6 +95,8 @@ interface AppState {
   fetchBaskets: () => Promise<void>
   fetchUserData: () => Promise<void>
   setAuthInitialized: (isInitialized: boolean) => void
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void
+  removeToast: (id: string) => void
 }
 
 export const useAppStore = create<AppState>()((set, get) => ({
@@ -123,6 +133,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   isLoading: false,
   isUserDataLoaded: false,
   activeTab: 'home',
+  toasts: [],
 
   // --- Actions ---
   setAuthInitialized: (val) => set({ isAuthInitialized: val }),
@@ -172,6 +183,19 @@ export const useAppStore = create<AppState>()((set, get) => ({
       if (paperTrades) Object.assign(updates, { paperTrades: paperTrades.map((t: any) => ({ ...t, deal: t.deal_data })) })
       if (dealReviews) Object.assign(updates, { reviews: dealReviews })
       if (skipReviews) Object.assign(updates, { skipReviews })
+
+      // Calculate dynamic dashboard data
+      if (paperTrades || dealReviews || skipReviews) {
+        const computedDashboard = calculateDashboardData(
+          updates.paperTrades || get().paperTrades || [],
+          updates.reviews || get().reviews || [],
+          updates.skipReviews || get().skipReviews || []
+        )
+        // Only update if there's actually data, otherwise keep defaults (mostly 0)
+        if ((updates.paperTrades && updates.paperTrades.length > 0) || (updates.reviews && updates.reviews.length > 0)) {
+          Object.assign(updates, { dashboardData: computedDashboard })
+        }
+      }
 
       set(updates)
     } catch (err) {
@@ -489,5 +513,18 @@ export const useAppStore = create<AppState>()((set, get) => ({
     } catch (err) {
       console.error('Failed to fetch baskets', err)
     }
+  },
+
+
+  showToast: (message, type = 'info') => {
+    const id = Date.now().toString()
+    set((state) => ({ toasts: [...state.toasts, { id, message, type }] }))
+    setTimeout(() => {
+      get().removeToast(id)
+    }, 5000)
+  },
+
+  removeToast: (id) => {
+    set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }))
   },
 }))

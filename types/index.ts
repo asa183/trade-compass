@@ -173,6 +173,8 @@ export interface Deal {
   name_ja: string
   target_etfs: ETFInfo[]
   regime_label: RegimeLabel
+  recommendation_level?: 'S' | 'A' | 'B' | 'C'
+  recommendation_rationale?: string
   recommended_action: string   // 推奨行動テキスト
   entry_condition: string
   take_profit_line: string
