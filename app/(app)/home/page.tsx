@@ -2,6 +2,7 @@
 
 import { useAppStore } from '@/stores/useAppStore'
 import { getConfidenceColor } from '@/lib/ui'
+import { calculateDynamicBasketScore } from '@/lib/scoring'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
@@ -321,8 +322,8 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: getConfidenceColor(basket.confidence_score) }}>
-                    {basket.confidence_score}%
+                  <span style={{ fontSize: 12, fontWeight: 700, color: getConfidenceColor(calculateDynamicBasketScore(basket, marketRegime).total) }}>
+                    {calculateDynamicBasketScore(basket, marketRegime).total}%
                   </span>
                   <ChevronRight size={14} color="var(--text-muted)" />
                 </div>

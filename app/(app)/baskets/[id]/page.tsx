@@ -6,10 +6,12 @@ import { ArrowLeft, TrendingUp, AlertTriangle, CheckCircle, XCircle, Clock, Chev
 import { useState } from 'react'
 import Link from 'next/link'
 import { getConfidenceColor, getConfidenceColorClass } from '@/lib/ui'
+import { calculateDynamicBasketScore } from '@/lib/scoring'
+import { ScoreBreakdown } from '@/components/ui/ScoreBreakdown'
 
 export default function BasketDetailPage() {
   const { id } = useParams()
-  const { baskets } = useAppStore()
+  const { baskets, marketRegime } = useAppStore()
   const router = useRouter()
   const [showDetails, setShowDetails] = useState(false)
   const basket = baskets.find((b) => b.id === id)
@@ -22,6 +24,9 @@ export default function BasketDetailPage() {
 
   const riskColor = { low: 'var(--success)', medium: 'var(--warning)', high: 'var(--danger)', 'very-high': '#e05757' }[basket.risk_level]
   const riskLabel = { low: '低リスク', medium: '中リスク', high: '高リスク', 'very-high': '非常に高い' }[basket.risk_level]
+
+  const scoreDetails = calculateDynamicBasketScore(basket, marketRegime)
+  const totalScore = scoreDetails.total
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -51,14 +56,18 @@ export default function BasketDetailPage() {
       {/* Confidence */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>確信度</span>
-          <span style={{ fontSize: 24, fontWeight: 800, color: getConfidenceColor(basket.confidence_score) }}>{basket.confidence_score}%</span>
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>総合確信度</span>
+          <span style={{ fontSize: 24, fontWeight: 800, color: getConfidenceColor(totalScore) }}>{totalScore}%</span>
         </div>
         <div className="score-bar-track" style={{ height: 8 }}>
-          <div className={`score-bar-fill ${getConfidenceColorClass(basket.confidence_score)}`} style={{ width: `${basket.confidence_score}%` }} />
+          <div className={`score-bar-fill ${getConfidenceColorClass(totalScore)}`} style={{ width: `${totalScore}%` }} />
         </div>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-          {basket.confidence_score >= 75 ? '確信度が高い局面です' : basket.confidence_score >= 60 ? '条件はそろいつつあります' : '不確実性が高め。慎重に。'}
+        
+        {/* Score Breakdown Bars */}
+        <ScoreBreakdown scoreDetails={scoreDetails} />
+
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12 }}>
+          {totalScore >= 75 ? '確信度が高い局面です' : totalScore >= 60 ? '条件はそろいつつあります' : '不確実性が高め。慎重に。'}
         </p>
       </div>
 

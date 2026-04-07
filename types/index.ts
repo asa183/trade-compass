@@ -128,7 +128,6 @@ export interface Basket {
   skip_condition: string
   invalidation_condition: string
   hold_period_days: string
-  confidence_score: number   // 0-100
   tailwind_factors: string[]
   headwind_factors: string[]
   similar_period_comment: string
@@ -183,6 +182,11 @@ export interface Deal {
   hold_period_days: string
   risk_level: RiskLevel
   confidence_score: number
+  score_breakdown?: {
+    regimeFit: number
+    trend: number
+    volatilityRisk: number
+  }
   counter_scenario: string     // 反対シナリオ
   similar_past_case: string    // 類似過去ケース
   event_caution_note?: string  // イベント前注意

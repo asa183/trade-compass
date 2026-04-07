@@ -191,7 +191,6 @@ async function seed() {
     skip_condition: '重要イベント（CPI等）直前、またはVIX急騰時',
     invalidation_condition: '市場レジームの転換やトレンド崩れ',
     hold_period_days: '5〜20日',
-    confidence_score: 75,
     tailwind_factors: [],
     headwind_factors: [],
     similar_period_comment: 'システムによる自動選定による',

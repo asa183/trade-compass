@@ -4,8 +4,10 @@ import { useAppStore } from '@/stores/useAppStore'
 import Link from 'next/link'
 import { useState } from 'react'
 import { TrendingUp, ChevronRight, Shield, Zap, BarChart2 } from 'lucide-react'
-import { Basket } from '@/types'
+import { Basket, BasketRecommendation } from '@/types'
 import { getConfidenceColor, getConfidenceColorClass } from '@/lib/ui'
+import { calculateDynamicBasketScore, DynamicScore } from '@/lib/scoring'
+import { ScoreBreakdown } from '@/components/ui/ScoreBreakdown'
 
 const CATEGORY_CONFIG = {
   'core-index': { label: 'コア指数型', color: 'var(--accent)', bg: 'var(--accent-dim)', icon: BarChart2 },
@@ -17,7 +19,17 @@ const CATEGORY_CONFIG = {
 const RISK_COLOR = { low: 'var(--success)', medium: 'var(--warning)', high: 'var(--danger)', 'very-high': '#e05757' }
 const RISK_LABEL = { low: '低', medium: '中', high: '高', 'very-high': '最高' }
 
-function BasketCard({ basket, priority }: { basket: Basket; priority?: number }) {
+function BasketCard({ basket, priority, score }: { basket: Basket; priority?: number; score?: DynamicScore }) {
+  const confColorStyle = score ? getConfidenceColorStyle(score.total) : { color: 'var(--text-primary)', bg: 'var(--bg-elevated)', bar: 'var(--text-primary)' }
+  
+  // 簡易的なヘルパー
+  function getConfidenceColorStyle(confidence: number) {
+    if (confidence >= 80) return { color: 'var(--success)', bg: 'var(--success-dim)', bar: 'var(--success)' }
+    if (confidence >= 60) return { color: 'var(--accent)', bg: 'rgba(96, 165, 250, 0.1)', bar: 'var(--accent)' }
+    if (confidence >= 40) return { color: 'var(--warning)', bg: 'var(--warning-dim)', bar: 'var(--warning)' }
+    return { color: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.1)', bar: 'var(--danger)' }
+  }
+
   const conf = CATEGORY_CONFIG[basket.category]
   const Icon = conf.icon
   return (
@@ -76,28 +88,26 @@ function BasketCard({ basket, priority }: { basket: Basket; priority?: number })
           </div>
         </div>
 
-        {/* Confidence */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-          <div style={{ flex: 1, marginRight: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>確信度</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: getConfidenceColor(basket.confidence_score) }}>{basket.confidence_score}%</span>
+        {/* Multi-factor Confidence */}
+        {score && (
+          <div style={{ marginTop: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>総合確信度</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: confColorStyle.color }}>
+                {score.total}%
+              </span>
             </div>
-            <div className={`score-bar-track`} style={{ height: 4 }}>
-              <div className={`score-bar-fill ${getConfidenceColorClass(basket.confidence_score)}`} style={{ width: `${basket.confidence_score}%` }} />
-            </div>
+            
+            <ScoreBreakdown scoreDetails={score} variant="compact" />
           </div>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-            {basket.hold_period_days}
-          </span>
-        </div>
+        )}
       </div>
     </Link>
   )
 }
 
 export default function BasketsPage() {
-  const { baskets, basketRecommendations } = useAppStore()
+  const { baskets, marketRegime, basketRecommendations } = useAppStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('all')
 
@@ -109,16 +119,22 @@ export default function BasketsPage() {
     { id: 'defensive', label: '防御型' }
   ]
 
-  const filteredBaskets = baskets.filter((b) => {
+  // Add dynamic score to baskets
+  const scoredBaskets = baskets.map(b => ({
+    basket: b,
+    score: calculateDynamicBasketScore(b, marketRegime)
+  }))
+
+  const filteredBaskets = scoredBaskets.filter(({ basket }) => {
     const matchesSearch = 
-      b.name_ja.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      b.etfs.some(e => e.ticker.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      b.background_logic.toLowerCase().includes(searchQuery.toLowerCase())
+      basket.name_ja.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      basket.etfs.some(e => e.ticker.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      basket.background_logic.toLowerCase().includes(searchQuery.toLowerCase())
     
-    const matchesCategory = activeCategory === 'all' || b.category === activeCategory
+    const matchesCategory = activeCategory === 'all' || basket.category === activeCategory
 
     return matchesSearch && matchesCategory
-  })
+  }).sort((a, b) => b.score.total - a.score.total) // ソート: 高スコア順
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -178,22 +194,23 @@ export default function BasketsPage() {
       </div>
 
       {/* 今日の推奨 (検索なし、全件表示のときのみ) */}
-      {searchQuery === '' && activeCategory === 'all' && basketRecommendations.length > 0 && (
+      {searchQuery === '' && activeCategory === 'all' && basketRecommendations && basketRecommendations.length > 0 && (
         <div style={{ marginTop: 8 }}>
           <div className="section-header">
             <span className="section-title">✨ 今日の推奨バスケット</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {basketRecommendations.map((rec) => (
-              <BasketCard key={rec.basket.id} basket={rec.basket} priority={rec.priority} />
-            ))}
+            {basketRecommendations.map((rec: BasketRecommendation) => {
+              const b = scoredBaskets.find(sb => sb.basket.id === rec.basket.id)
+              return <BasketCard key={rec.basket.id} basket={rec.basket} priority={rec.priority} score={b?.score} />
+            })}
           </div>
         </div>
       )}
 
       {/* バスケット一覧 */}
-      <div style={{ marginTop: searchQuery === '' && activeCategory === 'all' && basketRecommendations.length > 0 ? 16 : 0 }}>
-        {!(searchQuery === '' && activeCategory === 'all' && basketRecommendations.length > 0) && (
+      <div style={{ marginTop: searchQuery === '' && activeCategory === 'all' && basketRecommendations && basketRecommendations.length > 0 ? 16 : 0 }}>
+        {!(searchQuery === '' && activeCategory === 'all' && basketRecommendations && basketRecommendations.length > 0) && (
           <div className="section-header">
             <span className="section-title">
               {searchQuery ? '検索結果' : categories.find(c => c.id === activeCategory)?.label}
@@ -209,7 +226,7 @@ export default function BasketsPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {filteredBaskets.map((b) => <BasketCard key={b.id} basket={b} />)}
+            {filteredBaskets.map(({ basket, score }) => <BasketCard key={basket.id} basket={basket} score={score} />)}
           </div>
         )}
       </div>

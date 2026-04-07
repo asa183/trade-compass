@@ -79,7 +79,11 @@ export async function generateDeals() {
         invalidation_condition: z.string(),
         hold_period_days: z.string(),
         risk_level: z.enum(['low', 'medium', 'high']),
-        confidence_score: z.number().min(0).max(100),
+        score_breakdown: z.object({
+          regimeFit: z.number().min(0).max(100).describe('現在の市場レジームとの適合度'),
+          trend: z.number().min(0).max(100).describe('テーマやETFの現在のモメンタム'),
+          volatilityRisk: z.number().min(0).max(100).describe('変動リスク・ドローダウン危険度(高いほど危険)')
+        }),
         counter_scenario: z.string(),
         similar_past_case: z.string(),
         event_caution_note: z.string()
@@ -88,6 +92,7 @@ export async function generateDeals() {
     prompt: `あなたは熟練の機関投資家・ストラテジストです。
 現在の市場レジーム（相場環境）と利用可能なバスケット一覧から、今最も実行すべき投資推奨行動（ディール）を最大5つ選別し、具体的な売買プランを生成してください。
 日本語で記述してください。各ディールには、おすすめ度（S, A, B, C）とその根拠（rationale）を含めてください。
+確信度(confidence_score)は直接出力せず、score_breakdown (regimeFit, trend, volatilityRisk) の3要素をそれぞれ0〜100で厳格に評価してください。
 
 現在のレジーム:
 ${JSON.stringify(regime, null, 2)}
@@ -99,12 +104,21 @@ ${JSON.stringify(slimBaskets, null, 2)}
 `
   })
 
-  return deals.deals.map((d: any, index: number) => ({
-    id: `deal-${Date.now()}-${index}`,
-    regime_label: regime.label,
-    generated_at: new Date().toISOString(),
-    valid_until: new Date(Date.now() + 86400000 * 3).toISOString(),
-    status: 'active',
-    ...d
-  }))
+  return deals.deals.map((d: any, index: number) => {
+    // 総合正確信度を計算: Regime(40%) + Trend(40%) + RiskPenalty(20%)
+    const regimeFit = d.score_breakdown.regimeFit
+    const trend = d.score_breakdown.trend
+    const risk = d.score_breakdown.volatilityRisk
+    const confidence_score = Math.round(Math.min(100, Math.max(0, (regimeFit * 0.4) + (trend * 0.4) + ((100 - risk) * 0.2))))
+    
+    return {
+      id: `deal-${Date.now()}-${index}`,
+      regime_label: regime.label,
+      generated_at: new Date().toISOString(),
+      valid_until: new Date(Date.now() + 86400000 * 3).toISOString(),
+      status: 'active',
+      confidence_score,
+      ...d
+    }
+  })
 }

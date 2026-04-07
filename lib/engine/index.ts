@@ -186,9 +186,6 @@ function buildBasketReason(
   if (profile.risk_tolerance === 'medium' && basket.risk_level === 'medium') {
     parts.push('あなたのリスク許容度に合致')
   }
-  if (basket.confidence_score > 70) {
-    parts.push(`確信度${basket.confidence_score}%と高め`)
-  }
   return parts.join('。') || basket.background_logic.slice(0, 60) + '…'
 }
 

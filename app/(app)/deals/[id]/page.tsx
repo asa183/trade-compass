@@ -8,6 +8,7 @@ import {
   TrendingUp, TrendingDown, User, Zap, BookOpen, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { getConfidenceColor } from '@/lib/ui'
+import { ScoreBreakdown } from '@/components/ui/ScoreBreakdown'
 
 const SIZE_CONFIG = {
   skip: { label: '今回は見送りが有力', color: 'var(--danger)', bg: 'var(--danger-dim)' },
@@ -98,6 +99,10 @@ export default function DealDetailPage() {
         <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>推奨アクション</div>
         <p style={{ fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.7, marginBottom: deal.recommendation_rationale ? 12 : 0 }}>{deal.recommended_action}</p>
         
+        {deal.score_breakdown && (
+          <ScoreBreakdown scoreDetails={deal.score_breakdown} />
+        )}
+
         {deal.recommendation_rationale && (
           <>
             <div style={{ width: '100%', height: 1, background: 'var(--border)', margin: '12px 0' }} />

@@ -21,7 +21,7 @@ export interface Toast {
   message: string
   type: 'success' | 'error' | 'info'
 }
-import { assessExecutionFit, selectBaskets } from '@/lib/engine'
+import { selectBaskets } from '@/lib/engine'
 import { calculateDashboardData } from '@/lib/calculateDashboard'
 
 // Initial Empty Data
@@ -180,7 +180,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
         Object.assign(updates, { isOnboarded: false }) // profileが存在しない場合は明示的にfalse
       }
       
-      if (paperTrades) Object.assign(updates, { paperTrades: paperTrades.map((t: any) => ({ ...t, deal: t.deal_data })) })
+      if (paperTrades) Object.assign(updates, { paperTrades: paperTrades.map((t: PaperTrade & { deal_data?: unknown }) => ({ ...t, deal: t.deal_data })) })
       if (dealReviews) Object.assign(updates, { reviews: dealReviews })
       if (skipReviews) Object.assign(updates, { skipReviews })
 
@@ -427,7 +427,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   submitSkipReview: async (skipId, review) => {
     try {
       const { supabase } = await import('@/lib/supabase')
-      const { data, error } = await supabase.from('skip_reviews').update({
+      const { error } = await supabase.from('skip_reviews').update({
         skip_reason: review.skip_reason
       }).eq('id', skipId).select().single()
 
