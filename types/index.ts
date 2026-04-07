@@ -41,6 +41,7 @@ export interface MarketSnapshot {
   new_52w_high_count: number
   credit_spread: number
   sector_strength: Record<string, number> // sector -> score
+  news?: { uuid: string; title: string; publisher: string; link: string; providerPublishTime: number }[]
 }
 
 export interface MarketRegime {

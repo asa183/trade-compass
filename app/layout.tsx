@@ -16,6 +16,8 @@ export const viewport: Viewport = {
   themeColor: '#0d1117',
 }
 
+import AuthListener from '@/components/AuthListener'
+
 export default function RootLayout({
   children,
 }: {
@@ -28,6 +30,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body>
+        <AuthListener />
         {children}
       </body>
     </html>

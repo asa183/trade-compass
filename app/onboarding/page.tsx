@@ -73,9 +73,16 @@ export default function OnboardingPage() {
     return false
   }
 
-  const handleFinish = () => {
-    completeOnboarding(answers as OnboardingAnswers)
-    router.push('/home')
+  const [isSaving, setIsSaving] = useState(false)
+
+  const handleFinish = async () => {
+    setIsSaving(true)
+    try {
+      await completeOnboarding(answers as OnboardingAnswers)
+      router.push('/home')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -266,9 +273,9 @@ export default function OnboardingPage() {
               次へ <ChevronRight size={16} />
             </button>
           ) : (
-            <button className="btn btn-primary btn-full" onClick={handleFinish}>
+            <button className="btn btn-primary btn-full" onClick={handleFinish} disabled={isSaving}>
               <CheckCircle size={16} />
-              はじめる
+              {isSaving ? '保存中...' : 'はじめる'}
             </button>
           )}
         </div>

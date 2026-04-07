@@ -30,7 +30,7 @@ export async function generateDashboardInsights(dashboardData: any) {
   `
 
   const { object } = await generateObject({
-    model: openai('gpt-4o-mini'),
+    model: openai('o3-mini'),
     schema: z.object({
       insights: z.array(
         z.object({

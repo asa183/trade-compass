@@ -192,7 +192,10 @@ export default function PaperTradesPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 200 }}>
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-strong)', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: '24px 20px', width: '100%', maxWidth: 480 }}>
             <div style={{ width: 40, height: 4, background: 'var(--border-strong)', borderRadius: 2, margin: '0 auto 20px' }} />
-            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 16, color: 'var(--text-primary)' }}>模擬ディールを終了</div>
+            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>現在の価格で決済しますか？</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.5 }}>
+              入力した価格にて決済し、損益結果を確定します。<br />この操作は取り消せません。
+            </div>
 
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>終了理由</label>
@@ -210,7 +213,7 @@ export default function PaperTradesPage() {
 
             <div style={{ marginBottom: 20 }}>
               <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
-                終了価格（USD）<span style={{ fontSize: 11 }}>　エントリー: ${closeModal.entryPrice.toFixed(2)}</span>
+                決済価格（USD）<span style={{ fontSize: 11 }}>　エントリー: ${closeModal.entryPrice.toFixed(2)}</span>
               </label>
               <input
                 className="input"
@@ -224,7 +227,7 @@ export default function PaperTradesPage() {
 
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-ghost btn-full" onClick={() => setCloseModal(null)}>キャンセル</button>
-              <button className="btn btn-primary btn-full" onClick={handleClose} disabled={!exitPrice}>終了する</button>
+              <button className="btn btn-primary btn-full" onClick={handleClose} disabled={!exitPrice}>決済を確定する</button>
             </div>
           </div>
         </div>

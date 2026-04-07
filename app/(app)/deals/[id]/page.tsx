@@ -284,10 +284,10 @@ export default function DealDetailPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}>
           <div className="glass-panel" style={{ width: '100%', maxWidth: 400, padding: 24, background: 'var(--bg-secondary)', borderRadius: 'var(--radius-xl)' }}>
             <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, color: 'var(--text-primary)' }}>
-              見送りの理由を選択
+              このディールを見送りますか？
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.5 }}>
-              見送り理由を記録しておくことで、将来似た局面が来た時の判断基準になります。
+              見送りの理由を記録しておくことで、将来似た局面が来た時に振り返り（レビュー）が可能になります。
             </p>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
@@ -329,7 +329,7 @@ export default function DealDetailPage() {
           <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-strong)', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: '24px 20px', width: '100%', maxWidth: 480 }}>
             <div style={{ width: 40, height: 4, background: 'var(--border-strong)', borderRadius: 2, margin: '0 auto 20px' }} />
             <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>
-              模擬ディール開始
+              ペーパートレードを開始しますか？
             </div>
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
               {deal.name_ja}
@@ -344,13 +344,14 @@ export default function DealDetailPage() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.5 }}>
+                ✅ この条件で模擬トレードを開始します。<br/>
                 ※ 実際の資金は動きません。仮想金額での練習です。
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-ghost btn-full" onClick={() => setShowPaperModal(false)}>キャンセル</button>
-              <button className="btn btn-primary btn-full" onClick={handlePaperStart}>開始する</button>
+              <button className="btn btn-primary btn-full" onClick={handlePaperStart}>開始を確定する</button>
             </div>
           </div>
         </div>

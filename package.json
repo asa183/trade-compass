@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.50",
+    "@supabase/supabase-js": "^2.101.1",
     "ai": "^6.0.146",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

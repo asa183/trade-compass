@@ -45,6 +45,7 @@ export default function HomePage() {
   const {
     user,
     isOnboarded,
+    isAuthInitialized,
     marketRegime,
     marketEvents,
     deals,
@@ -53,6 +54,9 @@ export default function HomePage() {
     basketRecommendations,
     baskets,
     fetchMarketData,
+    fetchBaskets,
+    fetchDeals,
+    fetchUserData,
     isLoading,
     profile,
     dataFreshness,
@@ -60,11 +64,37 @@ export default function HomePage() {
   const router = useRouter()
 
   useEffect(() => {
+    if (!isAuthInitialized) return
     if (!user) { router.push('/login'); return }
-    if (!isOnboarded) { router.push('/onboarding'); return }
-    fetchMarketData()
+
+    const initData = async () => {
+      await fetchUserData() // profiles等を取得
+
+      // fetchUserData後、isAuthInitializedがあってuserが存在するが、もしオンボーディング未完了なら遷移
+      // TODO: strict warning: get() equivalent on profile
+      const stateProfile = useAppStore.getState().profile
+      if (!stateProfile) {
+        router.push('/onboarding')
+        return
+      }
+
+      await fetchBaskets()
+      await fetchMarketData()
+      await fetchDeals()
+    }
+    initData()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [isAuthInitialized, user, router])
+
+  if (!isAuthInitialized || (!profile && user)) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', flexDirection: 'column', gap: 16 }}>
+        <RefreshCw size={24} className="animate-spin text-muted" style={{ animation: 'spin 1s linear infinite' }} />
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>データを読み込んでいます...</span>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    )
+  }
 
   const regime = marketRegime
   const regConf = REGIME_CONFIG[regime.label] ?? REGIME_CONFIG['trend-continue']
@@ -178,6 +208,29 @@ export default function HomePage() {
                 {upcomingEvent.note}
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== 注目マーケットニュース ===== */}
+      {useAppStore().marketSnapshot?.news && useAppStore().marketSnapshot.news!.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <div className="section-header" style={{ marginBottom: 8 }}>
+            <span className="section-title">最新マーケットニュース (SPY)</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {useAppStore().marketSnapshot.news!.slice(0, 3).map((n) => (
+              <a key={n.uuid} href={n.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <div className="glass-panel" style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.4 }}>
+                    {n.title}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {n.publisher} • {format(new Date(n.providerPublishTime * 1000), 'M/d HH:mm')}
+                  </div>
+                </div>
+              </a>
+            ))}
           </div>
         </div>
       )}

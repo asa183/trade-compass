@@ -4,17 +4,56 @@ import { useState } from 'react'
 import { useAppStore } from '@/stores/useAppStore'
 import { useRouter } from 'next/navigation'
 
+import { supabase } from '@/lib/supabase'
+
 export default function LoginPage() {
   const { login } = useAppStore()
   const router = useRouter()
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [isLogin, setIsLogin] = useState(true)
+  const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    login(email || 'demo@tradecompass.app', name || 'デモユーザー')
-    router.push('/home')
+    setLoading(true)
+    setErrorMsg('')
+    setSuccessMsg('')
+
+    try {
+      if (isLogin) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        })
+        if (error) throw error
+        if (data.user) {
+          login(data.user.email || '', data.user.user_metadata?.display_name || 'ユーザー', data.user.id)
+          router.push('/home')
+        }
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { display_name: name }
+          }
+        })
+        if (error) throw error
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          setErrorMsg('このメールアドレスは既に登録されています。')
+          return
+        }
+        setSuccessMsg('確認メールを送信しました！メール内のリンクをクリックして登録を完了してください。')
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message || 'エラーが発生しました')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -61,25 +100,16 @@ export default function LoginPage() {
           </div>
           <div>
             <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>パスワード</label>
-            <input className="input" type="password" placeholder="••••••••" />
+            <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
           </div>
 
-          <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: 8 }}>
-            {isLogin ? 'ログイン' : 'アカウント作成して始める'}
+          {errorMsg && <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>{errorMsg}</div>}
+          {successMsg && <div style={{ color: 'var(--success)', fontSize: 12, marginTop: 4 }}>{successMsg}</div>}
+
+          <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: 8 }} disabled={loading}>
+            {loading ? '処理中...' : (isLogin ? 'ログイン' : 'アカウント作成して始める')}
           </button>
         </form>
-
-        {/* デモログイン */}
-        <button
-          onClick={() => { login('demo@tradecompass.app', 'デモユーザー'); router.push('/home') }}
-          style={{
-            width: '100%', marginTop: 12, padding: '12px', background: 'none',
-            border: '1px dashed var(--border-strong)', borderRadius: 'var(--radius-md)',
-            color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >
-          🎮 デモモードで試す（ログイン不要）
-        </button>
 
         <div style={{ textAlign: 'center', marginTop: 24 }}>
           <button onClick={() => setIsLogin(!isLogin)} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
