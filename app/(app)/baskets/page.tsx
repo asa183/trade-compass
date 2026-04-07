@@ -76,13 +76,13 @@ function BasketCard({ basket, priority, score }: { basket: Basket; priority?: nu
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <div style={{ background: 'var(--success-dim)', borderRadius: 8, padding: '6px 8px' }}>
             <div style={{ fontSize: 10, color: 'var(--success)', fontWeight: 700, marginBottom: 3 }}>追い風</div>
-            {basket.tailwind_factors.slice(0, 2).map((f, i) => (
+            {basket.tailwind_factors.map((f, i) => (
               <div key={i} style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.5 }}>• {f}</div>
             ))}
           </div>
           <div style={{ background: 'var(--danger-dim)', borderRadius: 8, padding: '6px 8px' }}>
             <div style={{ fontSize: 10, color: 'var(--danger)', fontWeight: 700, marginBottom: 3 }}>逆風</div>
-            {basket.headwind_factors.slice(0, 2).map((f, i) => (
+            {basket.headwind_factors.map((f, i) => (
               <div key={i} style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.5 }}>• {f}</div>
             ))}
           </div>
