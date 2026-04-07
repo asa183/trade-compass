@@ -60,6 +60,7 @@ export default function HomePage() {
     isLoading,
     profile,
     dataFreshness,
+    marketSnapshot,
   } = useAppStore()
   const router = useRouter()
 
@@ -214,13 +215,13 @@ export default function HomePage() {
       )}
 
       {/* ===== 注目マーケットニュース ===== */}
-      {useAppStore().marketSnapshot?.news && useAppStore().marketSnapshot.news!.length > 0 && (
+      {marketSnapshot?.news && marketSnapshot.news!.length > 0 && (
         <div style={{ marginTop: 8 }}>
           <div className="section-header" style={{ marginBottom: 8 }}>
             <span className="section-title">最新マーケットニュース (SPY)</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {useAppStore().marketSnapshot.news!.slice(0, 3).map((n) => (
+            {marketSnapshot.news!.slice(0, 3).map((n) => (
               <a key={n.uuid} href={n.link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
                 <div className="glass-panel" style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.4 }}>
