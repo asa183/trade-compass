@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { generateMarketRegime } from '@/lib/engine'
+import { generateMarketRegime } from '@/lib/ai-engine'
 import { getMarketSnapshot } from '@/lib/market'
 
 export const revalidate = 3600 // 1時間キャッシュ（APIコールの節約）

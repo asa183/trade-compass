@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { generateDeals } from '@/lib/engine'
+import { generateDeals } from '@/lib/ai-engine'
 
 export const revalidate = 3600 // 1時間キャッシュ（APIコールの節約）
 
