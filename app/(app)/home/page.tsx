@@ -105,7 +105,16 @@ export default function HomePage() {
     : baskets.slice(0, 3)
   const unreadCount = notifications.filter((n) => !n.is_read).length
 
-  const updatedAt = format(new Date(regime.calculated_at), 'M/d HH:mm', { locale: ja })
+  const safeFormatDate = (dateStr: string) => {
+    if (!dateStr) return '--/-- --:--'
+    try {
+      return format(new Date(dateStr), 'M/d HH:mm', { locale: ja })
+    } catch {
+      return '--/-- --:--'
+    }
+  }
+
+  const updatedAt = safeFormatDate(regime.calculated_at)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -119,12 +128,12 @@ export default function HomePage() {
             boxShadow: `0 0 8px ${dataFreshness.label === 'fresh' ? 'var(--success)' : 'var(--warning)'}`
           }} />
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-            {dataFreshness.label === 'fresh' ? '市場データ同期完了' : 'データ更新中...'}
+            {dataFreshness.label === 'fresh' ? '市場データ同期完了' : 'データ取得中...'}
           </span>
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
           <Clock size={12} />
-          {format(new Date(dataFreshness.last_updated_at), 'M/d HH:mm', { locale: ja })} 更新
+          {safeFormatDate(dataFreshness.last_updated_at)} 更新
         </div>
       </div>
 
