@@ -13,6 +13,7 @@ import {
   History,
   Bell,
   BookOpen,
+  RefreshCw,
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -25,17 +26,40 @@ const NAV_ITEMS = [
 ]
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user, isOnboarded, notifications } = useAppStore()
+  const { user, isAuthInitialized, isUserDataLoaded, isOnboarded, notifications, fetchUserData } = useAppStore()
   const router = useRouter()
   const pathname = usePathname()
   const unreadCount = notifications.filter((n) => !n.is_read).length
 
   useEffect(() => {
-    if (!user) { router.push('/login'); return }
-    if (!isOnboarded) { router.push('/onboarding'); return }
-  }, [user, isOnboarded, router])
+    // 認証情報が初期化されるまでは何もしない
+    if (!isAuthInitialized) return
 
-  if (!user || !isOnboarded) return null
+    if (!user) { 
+      router.push('/login')
+      return 
+    }
+
+    // ユーザーはいるが、データがまだロードされていない場合は取得開始
+    if (!isUserDataLoaded) {
+      fetchUserData()
+      return
+    }
+
+    // データロード完了後、オンボーディング未完了なら飛ばす
+    if (isUserDataLoaded && !isOnboarded) {
+      router.push('/onboarding')
+    }
+  }, [user, isAuthInitialized, isUserDataLoaded, isOnboarded, router, fetchUserData])
+
+  if (!isAuthInitialized || !user || !isUserDataLoaded || !isOnboarded) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100dvh', background: 'var(--bg-primary)' }}>
+        <RefreshCw size={24} className="animate-spin text-muted" style={{ animation: 'spin 1s linear infinite' }} />
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      </div>
+    )
+  }
 
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--bg-primary)' }}>

@@ -34,6 +34,7 @@ interface AppState {
   // Auth
   user: User | null
   isAuthInitialized: boolean
+  isUserDataLoaded: boolean
   isOnboarded: boolean
   profile: UserBehaviorProfile | null
 
@@ -120,6 +121,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   },
 
   isLoading: false,
+  isUserDataLoaded: false,
   activeTab: 'home',
 
   // --- Actions ---
@@ -137,7 +139,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   },
 
   logout: () => {
-    set({ user: null, isOnboarded: false, profile: null })
+    set({ user: null, isOnboarded: false, profile: null, isUserDataLoaded: false })
   },
 
   fetchUserData: async () => {
@@ -161,7 +163,12 @@ export const useAppStore = create<AppState>()((set, get) => ({
       ])
 
       const updates: Partial<AppState> = {}
-      if (profile) Object.assign(updates, { profile, isOnboarded: true })
+      if (profile) {
+        Object.assign(updates, { profile, isOnboarded: true })
+      } else {
+        Object.assign(updates, { isOnboarded: false }) // profileが存在しない場合は明示的にfalse
+      }
+      
       if (paperTrades) Object.assign(updates, { paperTrades: paperTrades.map((t: any) => ({ ...t, deal: t.deal_data })) })
       if (dealReviews) Object.assign(updates, { reviews: dealReviews })
       if (skipReviews) Object.assign(updates, { skipReviews })
@@ -170,7 +177,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
     } catch (err) {
       console.error('Failed to fetch user data', err)
     } finally {
-      set({ isLoading: false })
+      set({ isLoading: false, isUserDataLoaded: true })
     }
   },
 

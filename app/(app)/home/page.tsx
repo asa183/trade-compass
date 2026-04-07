@@ -68,15 +68,7 @@ export default function HomePage() {
     if (!user) { router.push('/login'); return }
 
     const initData = async () => {
-      await fetchUserData() // profiles等を取得
-
-      // fetchUserData後、isAuthInitializedがあってuserが存在するが、もしオンボーディング未完了なら遷移
-      // TODO: strict warning: get() equivalent on profile
-      const stateProfile = useAppStore.getState().profile
-      if (!stateProfile) {
-        router.push('/onboarding')
-        return
-      }
+      // NOTE: UserData (Profile) & Onboarding check is now handled centrally by app/(app)/layout.tsx
 
       await fetchBaskets()
       await fetchMarketData()
@@ -90,7 +82,7 @@ export default function HomePage() {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', flexDirection: 'column', gap: 16 }}>
         <RefreshCw size={24} className="animate-spin text-muted" style={{ animation: 'spin 1s linear infinite' }} />
-        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>データを読み込んでいます...</span>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>ダッシュボードを準備中...</span>
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     )
