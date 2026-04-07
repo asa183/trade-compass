@@ -227,6 +227,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       set({ basketRecommendations: recs })
     } catch (err) {
       console.error('Failed to save profile', err)
+      throw err // <--- IMPORTANT: throw the error so UI knows
     } finally {
       set({ isLoading: false })
     }

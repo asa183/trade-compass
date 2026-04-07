@@ -80,6 +80,8 @@ export default function OnboardingPage() {
     try {
       await completeOnboarding(answers as OnboardingAnswers)
       router.push('/home')
+    } catch (err: any) {
+      alert('保存に失敗しました: ' + (err.message || String(err)))
     } finally {
       setIsSaving(false)
     }
