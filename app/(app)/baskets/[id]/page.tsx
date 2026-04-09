@@ -2,7 +2,7 @@
 
 import { useAppStore } from '@/stores/useAppStore'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, TrendingUp, AlertTriangle, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, TrendingUp, AlertTriangle, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
 import Link from 'next/link'
 import { getConfidenceColor, getConfidenceColorClass } from '@/lib/ui'
@@ -111,7 +111,9 @@ export default function BasketDetailPage() {
         {basket.etfs.map((etf) => (
           <div key={etf.ticker} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-              <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--accent)' }}>{etf.ticker}</span>
+              <a href={`https://finance.yahoo.com/quote/${etf.ticker}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 16, fontWeight: 800, color: 'var(--accent)', textDecoration: 'none' }}>
+                {etf.ticker} <ExternalLink size={14} />
+              </a>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{etf.name}</span>
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>{etf.description}</p>

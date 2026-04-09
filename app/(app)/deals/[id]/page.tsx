@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import {
   ArrowLeft, AlertTriangle, CheckCircle, XCircle, Clock,
-  TrendingUp, TrendingDown, User, Zap, BookOpen, ChevronDown, ChevronUp,
+  TrendingUp, TrendingDown, User, Zap, BookOpen, ChevronDown, ChevronUp, ExternalLink
 } from 'lucide-react'
 import { getConfidenceColor } from '@/lib/ui'
 import { ScoreBreakdown } from '@/components/ui/ScoreBreakdown'
@@ -80,7 +80,11 @@ export default function DealDetailPage() {
             </span>
           )}
           {deal.target_etfs.map((e) => (
-            <span key={e.ticker} className="badge badge-accent">{e.ticker}</span>
+            <a key={e.ticker} href={`https://finance.yahoo.com/quote/${e.ticker}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+              <span className="badge badge-accent" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                {e.ticker} <ExternalLink size={10} />
+              </span>
+            </a>
           ))}
           <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--radius-full)', background: `${riskColor}1a`, color: riskColor, fontWeight: 600 }}>
             リスク{deal.risk_level}
