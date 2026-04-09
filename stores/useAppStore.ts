@@ -26,7 +26,7 @@ import { calculateDashboardData } from '@/lib/calculateDashboard'
 
 // Initial Empty Data
 const emptyMarketSnapshot: MarketSnapshot = {
-  id: '', timestamp: '', sp500: 0, sp500_change_pct: 0, nasdaq100: 0, nasdaq100_change_pct: 0, russell2000: 0, russell2000_change_pct: 0, vix: 0, us10y_yield: 0, dxy: 0, crude_oil: 0, above_200ma_ratio: 0, new_52w_high_count: 0, credit_spread: 0, sector_strength: { technology: 0, healthcare: 0, energy: 0, financials: 0, consumer_staples: 0, utilities: 0, semiconductors: 0, real_estate: 0 }
+  id: '', timestamp: '', sp500: 0, sp500_change_pct: 0, nasdaq100: 0, nasdaq100_change_pct: 0, russell2000: 0, russell2000_change_pct: 0, vix: 0, us10y_yield: 0, dxy: 0, crude_oil: 0, sp500_200ma_distance_pct: 0, sp500_50ma_distance_pct: 0, sector_performance: { XLK: 0, XLV: 0, XLE: 0, XLF: 0, XLP: 0, XLU: 0, SMH: 0, XLRE: 0 }
 }
 
 const emptyMarketRegime: MarketRegime = {

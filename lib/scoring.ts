@@ -34,16 +34,17 @@ export function calculateDynamicBasketScore(basket: Basket, regime: MarketRegime
   )
   
   if (isMatch) {
-    regimeFit = 85 + Math.random() * 10 // 少し揺らぎをもたせる
+    regimeFit = 90
   } else if (regime.label === 'risk-off' && basket.category !== 'defensive') {
-    regimeFit = 30 + Math.random() * 10
+    regimeFit = 35
   } else {
-    regimeFit = 50 + Math.random() * 20
+    regimeFit = 60
   }
 
-  // 2. Trend Momentum Calculation (ダミー計算)
-  // 実際にはETFの過去数日の価格データを引くなどの処理が入るが、ここではスコアを適当に算出
-  const trend = 60 + Math.random() * 30
+  // 2. Trend Momentum Calculation
+  // モメンタムはレジームのトレンドスコアを基準に、当該テーマへの資金流入（レジーム適合度）で補正
+  const baseTrend = regime.score_trend || 50
+  const trend = Math.min(100, Math.max(0, baseTrend + (regimeFit - 60) * 0.5))
 
   // 3. Volatility Risk Calculation
   // risk_level に基づくベースライン

@@ -18,6 +18,9 @@ export default function AuthListener() {
         )
       }
       setAuthInitialized(true)
+    }).catch((err) => {
+      console.error('Failed to get Supabase session:', err)
+      setAuthInitialized(true) // エラー時でもUIをブロックしないようにする
     })
 
     // ログイン状態の変更を監視

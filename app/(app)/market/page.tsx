@@ -144,8 +144,8 @@ export default function MarketPage() {
             { label: '米10年債', value: `${snap.us10y_yield.toFixed(2)}%`, note: snap.us10y_yield < 4.0 ? '成長株追い風' : '高水準に注意', color: snap.us10y_yield < 4.0 ? 'var(--success)' : 'var(--warning)' },
             { label: 'ドル指数', value: snap.dxy.toFixed(1), note: '米ドル強度', color: 'var(--text-secondary)' },
             { label: '原油', value: `$${snap.crude_oil.toFixed(1)}`, note: 'エネルギー価格', color: 'var(--text-secondary)' },
-            { label: '200MA上比率', value: `${snap.above_200ma_ratio}%`, note: snap.above_200ma_ratio > 60 ? '市場内部健全' : '弱まりに注意', color: snap.above_200ma_ratio > 60 ? 'var(--success)' : 'var(--warning)' },
-            { label: '52週高値更新', value: `${snap.new_52w_high_count}件`, note: '強さの指標', color: snap.new_52w_high_count > 150 ? 'var(--success)' : 'var(--text-secondary)' },
+            { label: '200MA乖離率', value: `${snap.sp500_200ma_distance_pct.toFixed(1)}%`, note: snap.sp500_200ma_distance_pct > 3 ? '長期トレンド健全' : '弱まりに注意', color: snap.sp500_200ma_distance_pct > 3 ? 'var(--success)' : 'var(--warning)' },
+            { label: '50MA乖離率', value: `${snap.sp500_50ma_distance_pct.toFixed(1)}%`, note: snap.sp500_50ma_distance_pct > 5 ? 'やや過熱' : '中期トレンド', color: snap.sp500_50ma_distance_pct > 5 ? 'var(--warning)' : 'var(--success)' },
           ].map(({ label, value, note, color }) => (
             <div key={label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '10px 12px' }}>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{label}</div>
@@ -162,23 +162,23 @@ export default function MarketPage() {
           <span className="section-title">セクター強度</span>
         </div>
         <div className="card">
-          {Object.entries(snap.sector_strength)
+          {Object.entries(snap.sector_performance)
             .sort((a, b) => b[1] - a[1])
-            .map(([sector, score]) => {
+            .map(([sector, pct]) => {
               const names: Record<string, string> = {
-                technology: 'テクノロジー', semiconductors: '半導体', financials: '金融',
-                energy: 'エネルギー', healthcare: 'ヘルスケア', consumer_staples: '生活必需品',
-                utilities: 'ユーティリティ', real_estate: '不動産',
+                XLK: 'テクノロジー', SMH: '半導体', XLF: '金融',
+                XLE: 'エネルギー', XLV: 'ヘルスケア', XLP: '生活必需品',
+                XLU: 'ユーティリティ', XLRE: '不動産',
               }
-              const color = score > 75 ? 'var(--success)' : score > 55 ? 'var(--accent)' : 'var(--warning)'
+              const color = pct > 3 ? 'var(--success)' : pct > 0 ? 'var(--accent)' : 'var(--danger)'
               return (
                 <div key={sector} style={{ marginBottom: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                     <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{names[sector] ?? sector}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color }}>{score}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color }}>{pct > 0 ? '+' : ''}{pct.toFixed(2)}%</span>
                   </div>
                   <div className="score-bar-track">
-                    <div className="score-bar-fill" style={{ width: `${score}%`, background: color }} />
+                    <div className="score-bar-fill" style={{ width: `${Math.min(100, Math.max(0, 50 + pct * 5))}%`, background: color }} />
                   </div>
                 </div>
               )

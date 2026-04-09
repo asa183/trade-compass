@@ -37,10 +37,9 @@ export interface MarketSnapshot {
   us10y_yield: number
   dxy: number
   crude_oil: number
-  above_200ma_ratio: number // 0-100
-  new_52w_high_count: number
-  credit_spread: number
-  sector_strength: Record<string, number> // sector -> score
+  sp500_200ma_distance_pct: number
+  sp500_50ma_distance_pct: number
+  sector_performance: Record<string, number>
   news?: { uuid: string; title: string; publisher: string; link: string; providerPublishTime: number }[]
 }
 

@@ -44,8 +44,13 @@ export function calculateDashboardData(
       ? (defaultReviews.filter(r => r.rule_followed).length / defaultReviews.length) * 100 
       : 0
     
-    // Notification follow (mock based on dummy for now)
-    data.behavior.notification_follow_rate = 85
+    // Notification follow calculation (actual follow vs skip)
+    const totalPrompted = paperTrades.length + skipReviews.length
+    if (totalPrompted > 0) {
+      data.behavior.notification_follow_rate = Math.round((paperTrades.length / totalPrompted) * 100)
+    } else {
+      data.behavior.notification_follow_rate = 0
+    }
 
     // Rate of manual early exits instead of take profit
     const manualExits = closedTrades.filter(t => t.exit_reason === 'manual' && (t.result_pnl || 0) > 0)

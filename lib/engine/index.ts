@@ -15,27 +15,25 @@ import {
 // ============================================================
 
 export function calcMarketRegime(snap: MarketSnapshot): Omit<MarketRegime, 'id' | 'snapshot_id'> {
-  const { vix, us10y_yield, sp500, above_200ma_ratio, credit_spread } = snap
+  const { vix, us10y_yield, sp500, sp500_200ma_distance_pct, sp500_50ma_distance_pct } = snap
 
   // ---- スコア計算 ----
-  // 追い風スコア: 低VIX + 低金利 + 強い市場内部
+  // 追い風スコア: 低VIX + 低金利 + 200MAからの乖離（上昇トレンド）
   const tailwindVix = vix < 15 ? 80 : vix < 20 ? 60 : vix < 25 ? 35 : 10
   const tailwindRate = us10y_yield < 3.5 ? 85 : us10y_yield < 4.0 ? 70 : us10y_yield < 4.5 ? 45 : 20
-  const tailwindInternal = above_200ma_ratio > 70 ? 80 : above_200ma_ratio > 55 ? 60 : above_200ma_ratio > 40 ? 35 : 15
+  const tailwindInternal = sp500_200ma_distance_pct > 8 ? 80 : sp500_200ma_distance_pct > 3 ? 60 : sp500_200ma_distance_pct > 0 ? 40 : 15
   const score_tailwind = Math.round((tailwindVix + tailwindRate + tailwindInternal) / 3)
 
-  // リスクスコア: 高VIX + クレジットスプレッド拡大
+  // リスクスコア: 高VIX
   const riskVix = vix > 30 ? 85 : vix > 22 ? 60 : vix > 17 ? 35 : 15
-  const riskSpread = credit_spread > 2.0 ? 80 : credit_spread > 1.5 ? 55 : credit_spread > 1.2 ? 35 : 15
-  const score_risk = Math.round((riskVix + riskSpread) / 2)
+  const score_risk = riskVix
 
-  // 過熱スコア: 高い200MA上銘柄比率 + 52週高値更新増
-  const heat52w = snap.new_52w_high_count > 300 ? 80 : snap.new_52w_high_count > 200 ? 65 : snap.new_52w_high_count > 100 ? 45 : 25
-  const heatInternal = above_200ma_ratio > 80 ? 75 : above_200ma_ratio > 70 ? 58 : above_200ma_ratio > 55 ? 40 : 20
-  const score_heat = Math.round((heat52w + heatInternal) / 2)
+  // 過熱スコア: 50日移動平均からの上方乖離
+  const heat50ma = sp500_50ma_distance_pct > 8 ? 85 : sp500_50ma_distance_pct > 5 ? 65 : sp500_50ma_distance_pct > 2 ? 40 : 20
+  const score_heat = heat50ma
 
-  // トレンドスコア: SP500 vs 200MA
-  const trendScore = above_200ma_ratio > 65 ? 75 : above_200ma_ratio > 50 ? 55 : above_200ma_ratio > 35 ? 35 : 15
+  // トレンドスコア: 200MAの乖離
+  const trendScore = sp500_200ma_distance_pct > 5 ? 75 : sp500_200ma_distance_pct > 0 ? 55 : sp500_200ma_distance_pct > -5 ? 35 : 15
   const score_trend = Math.round(trendScore + (snap.sp500_change_pct > 0 ? 10 : -10))
 
   // タイミングスコア: 複合
@@ -50,7 +48,7 @@ export function calcMarketRegime(snap: MarketSnapshot): Omit<MarketRegime, 'id' 
   if (vix > 28) {
     label = 'high-vol-caution'
     label_ja = '高ボラ注意'
-  } else if (above_200ma_ratio < 40 && snap.sp500_change_pct < -1) {
+  } else if (sp500_200ma_distance_pct < -2 && snap.sp500_change_pct < -1) {
     label = 'risk-off'
     label_ja = 'リスクオフ'
   } else if (us10y_yield < 3.8 && score_tailwind > 65) {
@@ -65,10 +63,10 @@ export function calcMarketRegime(snap: MarketSnapshot): Omit<MarketRegime, 'id' 
   } else if (score_heat > 70) {
     label = 'overheat-caution'
     label_ja = '過熱警戒'
-  } else if (snap.sp500_change_pct > 0 && above_200ma_ratio > 55) {
+  } else if (snap.sp500_change_pct > 0 && sp500_200ma_distance_pct > 2) {
     label = 'trend-continue'
     label_ja = 'トレンド継続'
-  } else if (snap.sp500_change_pct > -1 && above_200ma_ratio > 45) {
+  } else if (snap.sp500_change_pct > -1 && sp500_200ma_distance_pct > -1) {
     label = 'rebound-early'
     label_ja = '反発初動'
   } else {
@@ -83,12 +81,11 @@ export function calcMarketRegime(snap: MarketSnapshot): Omit<MarketRegime, 'id' 
 
   if (us10y_yield < 4.0) tailwind_factors.push(`金利低下（${us10y_yield}%）で成長株に追い風`)
   if (vix < 18) tailwind_factors.push(`VIX${vix}台で急変リスクは低め`)
-  if (above_200ma_ratio > 60) tailwind_factors.push(`市場内部健全（200MA上 ${above_200ma_ratio}%）`)
+  if (sp500_200ma_distance_pct > 3) tailwind_factors.push(`長期トレンド堅調（200MA上 ${sp500_200ma_distance_pct.toFixed(1)}%乖離）`)
   if (snap.nasdaq100_change_pct > 0.5) tailwind_factors.push('Nasdaq100が相対強い')
 
   if (us10y_yield > 4.2) headwind_factors.push(`金利水準がやや高く（${us10y_yield}%）、グロース株に逆風`)
   if (vix > 20) headwind_factors.push(`VIX${vix}台まで上昇、ボラ拡大に注意`)
-  if (credit_spread > 1.3) headwind_factors.push('クレジットスプレッド拡大、信用不安の兆し')
   if (score_heat > 55) headwind_factors.push('過熱感あり、新規エントリーは慎重に')
 
   watch_points.push(`次の重要指標: CPI・FOMC・雇用統計の前後は値動きに注意`)
