@@ -247,7 +247,7 @@ export default function HomePage() {
                     {n.title}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    {n.publisher} • {format(new Date(n.providerPublishTime * 1000), 'M/d HH:mm')}
+                    {n.publisher} • {format(new Date(typeof n.providerPublishTime === 'number' ? n.providerPublishTime * 1000 : n.providerPublishTime), 'M/d HH:mm')}
                   </div>
                 </div>
               </a>

@@ -37,7 +37,9 @@ function IndexCard({ ticker, value, change }: { ticker: string; value: number; c
 export default function MarketPage() {
   const { marketSnapshot: snap, marketRegime: regime, marketEvents } = useAppStore()
 
-  const updatedAt = format(new Date(regime.calculated_at), 'M月d日 HH:mm', { locale: ja })
+  const updatedAt = regime.calculated_at 
+    ? format(new Date(regime.calculated_at), 'M月d日 HH:mm', { locale: ja })
+    : '--'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -194,7 +196,9 @@ export default function MarketPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {marketEvents.map((event) => {
             const importanceColor = event.importance === 'high' ? 'var(--danger)' : event.importance === 'medium' ? 'var(--warning)' : 'var(--text-muted)'
-            const dateStr = format(new Date(event.scheduled_at), 'M/d(E) HH:mm', { locale: ja })
+            const dateStr = event.scheduled_at
+              ? format(new Date(event.scheduled_at), 'M/d(E) HH:mm', { locale: ja })
+              : '--'
             return (
               <div key={event.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
