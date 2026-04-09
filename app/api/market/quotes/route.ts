@@ -21,14 +21,17 @@ export async function GET(request: Request) {
   try {
     const quotesObj = await yahooFinance.quote(symbols)
     // format as a record: { "SPY": 450.12, "QQQ": 300.41 }
-    const quotes: Record<string, number> = {}
+    const quotes: Record<string, { price: number; changePct: number }> = {}
     
     // yahooFinance.quote returns an array if multiple symbols, or single object if one symbol
     const quotesArray = Array.isArray(quotesObj) ? quotesObj : [quotesObj]
     
     for (const q of quotesArray as any[]) {
       if (q && q.symbol && q.regularMarketPrice) {
-        quotes[q.symbol] = q.regularMarketPrice
+        quotes[q.symbol] = {
+          price: q.regularMarketPrice,
+          changePct: q.regularMarketChangePercent || 0
+        }
       }
     }
 

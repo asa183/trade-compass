@@ -4,6 +4,8 @@ import { useAppStore } from '@/stores/useAppStore'
 import Link from 'next/link'
 import { AlertTriangle, ChevronRight, Zap, Shield, TrendingUp, Clock } from 'lucide-react'
 import { Deal } from '@/types'
+import { LivePriceBadge } from '@/components/ui/LivePriceBadge'
+import { useEffect } from 'react'
 
 const RISK_LABEL: Record<string, string> = { low: '低', medium: '中', high: '高', 'very-high': '最高' }
 const RISK_COLOR: Record<string, string> = { low: 'var(--success)', medium: 'var(--warning)', high: 'var(--danger)', 'very-high': '#e05757' }
@@ -37,9 +39,12 @@ function DealCard({ deal }: { deal: Deal }) {
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 4 }}>
               {deal.name_ja}
             </div>
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
               {deal.target_etfs.map((e) => (
-                <span key={e.ticker} className="badge badge-accent">{e.ticker}</span>
+                <div key={e.ticker} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span className="badge badge-accent">{e.ticker}</span>
+                  <LivePriceBadge symbol={e.ticker} />
+                </div>
               ))}
               <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: `${riskColor}1a`, color: riskColor, fontWeight: 600 }}>
                 リスク{RISK_LABEL[deal.risk_level]}
@@ -111,8 +116,16 @@ function DealCard({ deal }: { deal: Deal }) {
 }
 
 export default function DealsPage() {
-  const { deals } = useAppStore()
+  const { deals, fetchLiveQuotes } = useAppStore()
   const activeDeals = deals.filter((d) => d.status === 'active')
+
+  useEffect(() => {
+    if (activeDeals.length > 0) {
+      const symbols = Array.from(new Set(activeDeals.flatMap(d => d.target_etfs.map(e => e.ticker))))
+      fetchLiveQuotes(symbols)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deals.length, fetchLiveQuotes])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

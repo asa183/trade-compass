@@ -19,6 +19,7 @@ import {
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { RegimeLabel } from '@/types'
+import { LivePriceBadge } from '@/components/ui/LivePriceBadge'
 
 const REGIME_CONFIG: Record<RegimeLabel, { color: string; bg: string; icon: string }> = {
   'risk-on': { color: 'var(--success)', bg: 'var(--success-dim)', icon: '🚀' },
@@ -63,6 +64,7 @@ export default function HomePage() {
     profile,
     dataFreshness,
     marketSnapshot,
+    fetchLiveQuotes,
   } = useAppStore()
   const router = useRouter()
 
@@ -80,6 +82,23 @@ export default function HomePage() {
     initData()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthInitialized, user, router])
+
+  useEffect(() => {
+    if (!isAuthInitialized) return
+    const tmpDeals = deals.filter((d) => d.status === 'active').slice(0, 2)
+    const tmpBaskets = basketRecommendations.length > 0
+      ? basketRecommendations.slice(0, 3).map(r => r.basket)
+      : baskets.slice(0, 3)
+
+    const dealSymbols = tmpDeals.flatMap(d => d.target_etfs.map(e => e.ticker))
+    const basketSymbols = tmpBaskets.flatMap(b => b.etfs.map(e => e.ticker))
+    const allSymbols = Array.from(new Set([...dealSymbols, ...basketSymbols]))
+    
+    if (allSymbols.length > 0) {
+      fetchLiveQuotes(allSymbols)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthInitialized, deals.length, baskets.length, basketRecommendations.length, fetchLiveQuotes])
 
   if (!isAuthInitialized || (!profile && user)) {
     return (
@@ -309,13 +328,16 @@ export default function HomePage() {
                   } />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
                       {basket.name_ja}
                     </span>
-                    <span className="badge badge-neutral" style={{ fontSize: 10 }}>
-                      {basket.etfs[0]?.ticker}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span className="badge badge-neutral" style={{ fontSize: 10 }}>
+                        {basket.etfs[0]?.ticker}
+                      </span>
+                      {basket.etfs[0]?.ticker && <LivePriceBadge symbol={basket.etfs[0]?.ticker} />}
+                    </div>
                   </div>
                   <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }} className="truncate">
                     {basket.tailwind_factors[0] ?? basket.background_logic}
@@ -361,9 +383,12 @@ export default function HomePage() {
                       <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
                         {deal.name_ja}
                       </div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                         {deal.target_etfs.map((e) => (
-                          <span key={e.ticker} className="badge badge-accent">{e.ticker}</span>
+                          <div key={e.ticker} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span className="badge badge-accent">{e.ticker}</span>
+                            <LivePriceBadge symbol={e.ticker} />
+                          </div>
                         ))}
                         <span className={`badge badge-${deal.risk_level === 'low' ? 'success' : deal.risk_level === 'high' ? 'danger' : 'warning'}`}>
                           リスク{RISK_LABEL[deal.risk_level]}

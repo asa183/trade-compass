@@ -2,7 +2,8 @@
 
 import { useAppStore } from '@/stores/useAppStore'
 import { useParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { LivePriceBadge } from '@/components/ui/LivePriceBadge'
 import {
   ArrowLeft, AlertTriangle, CheckCircle, XCircle, Clock,
   TrendingUp, TrendingDown, User, Zap, BookOpen, ChevronDown, ChevronUp, ExternalLink
@@ -19,7 +20,7 @@ const SIZE_CONFIG = {
 
 export default function DealDetailPage() {
   const { id } = useParams()
-  const { deals, startPaperTrade, skipDeal, paperTrades, skipReviews } = useAppStore()
+  const { deals, startPaperTrade, skipDeal, paperTrades, skipReviews, fetchLiveQuotes } = useAppStore()
 
   const router = useRouter()
   const [showInvalidation, setShowInvalidation] = useState(false)
@@ -36,6 +37,14 @@ export default function DealDetailPage() {
   const [action, setAction] = useState<'execute' | 'paper' | 'skip' | 'later' | null>(null)
 
   const deal = deals.find((d) => d.id === id)
+
+  useEffect(() => {
+    if (deal) {
+      fetchLiveQuotes(deal.target_etfs.map(e => e.ticker))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deal?.id, fetchLiveQuotes])
+
   if (!deal) return (
     <div style={{ paddingTop: 60, textAlign: 'center', color: 'var(--text-muted)' }}>
       ディールが見つかりません
@@ -80,11 +89,14 @@ export default function DealDetailPage() {
             </span>
           )}
           {deal.target_etfs.map((e) => (
-            <a key={e.ticker} href={`https://finance.yahoo.com/quote/${e.ticker}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-              <span className="badge badge-accent" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                {e.ticker} <ExternalLink size={10} />
-              </span>
-            </a>
+            <div key={e.ticker} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <a href={`https://finance.yahoo.com/quote/${e.ticker}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <span className="badge badge-accent" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {e.ticker} <ExternalLink size={10} />
+                </span>
+              </a>
+              <LivePriceBadge symbol={e.ticker} />
+            </div>
           ))}
           <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 'var(--radius-full)', background: `${riskColor}1a`, color: riskColor, fontWeight: 600 }}>
             リスク{deal.risk_level}

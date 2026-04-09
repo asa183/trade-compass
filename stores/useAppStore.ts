@@ -62,6 +62,9 @@ interface AppState {
   reviews: DealReview[]
   skipReviews: SkipReview[]
 
+  // Live Prices
+  liveQuotes: Record<string, { price: number; changePct: number }>
+
   // Notifications
   notifications: Notification[]
 
@@ -97,6 +100,7 @@ interface AppState {
   setAuthInitialized: (isInitialized: boolean) => void
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void
   removeToast: (id: string) => void
+  fetchLiveQuotes: (symbols: string[]) => Promise<void>
 }
 
 export const useAppStore = create<AppState>()((set, get) => ({
@@ -121,6 +125,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
   reviews: [],
   skipReviews: [],
 
+  liveQuotes: {},
+
   notifications: [],
   dashboardData: {
     performance: { total_pnl: 0, total_pnl_pct: 0, win_rate: 0, avg_win: 0, avg_loss: 0, risk_reward: 0, expectancy: 0, max_drawdown: 0, trade_count: 0 },
@@ -137,6 +143,23 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
   // --- Actions ---
   setAuthInitialized: (val) => set({ isAuthInitialized: val }),
+
+  fetchLiveQuotes: async (symbols: string[]) => {
+    if (symbols.length === 0) return
+    try {
+      const res = await fetch(`/api/market/quotes?symbols=${symbols.join(',')}`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.quotes) {
+          set((state) => ({
+            liveQuotes: { ...state.liveQuotes, ...data.quotes }
+          }))
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch live quotes', err)
+    }
+  },
 
   login: (email, name, id) => {
     set({

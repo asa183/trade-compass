@@ -8,6 +8,8 @@ import { Basket, BasketRecommendation } from '@/types'
 import { getConfidenceColor, getConfidenceColorClass } from '@/lib/ui'
 import { calculateDynamicBasketScore, DynamicScore } from '@/lib/scoring'
 import { ScoreBreakdown } from '@/components/ui/ScoreBreakdown'
+import { LivePriceBadge } from '@/components/ui/LivePriceBadge'
+import { useEffect } from 'react'
 
 const CATEGORY_CONFIG = {
   'core-index': { label: 'コア指数型', color: 'var(--accent)', bg: 'var(--accent-dim)', icon: BarChart2 },
@@ -55,9 +57,12 @@ function BasketCard({ basket, priority, score }: { basket: Basket; priority?: nu
         </div>
 
         {/* ETF Tickers */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8, alignItems: 'center' }}>
           {basket.etfs.map((e) => (
-            <span key={e.ticker} className="badge badge-accent" style={{ fontSize: 11 }}>{e.ticker}</span>
+            <div key={e.ticker} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span className="badge badge-accent" style={{ fontSize: 11 }}>{e.ticker}</span>
+              <LivePriceBadge symbol={e.ticker} />
+            </div>
           ))}
           <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: conf.bg, color: conf.color, fontWeight: 600 }}>
             {conf.label}
@@ -107,7 +112,7 @@ function BasketCard({ basket, priority, score }: { basket: Basket; priority?: nu
 }
 
 export default function BasketsPage() {
-  const { baskets, marketRegime, basketRecommendations } = useAppStore()
+  const { baskets, marketRegime, basketRecommendations, fetchLiveQuotes } = useAppStore()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<string>('all')
 
@@ -135,6 +140,14 @@ export default function BasketsPage() {
 
     return matchesSearch && matchesCategory
   }).sort((a, b) => b.score.total - a.score.total) // ソート: 高スコア順
+
+  useEffect(() => {
+    if (filteredBaskets.length > 0) {
+      const symbols = Array.from(new Set(filteredBaskets.flatMap(b => b.basket.etfs.map(e => e.ticker))))
+      fetchLiveQuotes(symbols)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baskets.length, fetchLiveQuotes])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

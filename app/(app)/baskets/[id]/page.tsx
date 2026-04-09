@@ -3,15 +3,16 @@
 import { useAppStore } from '@/stores/useAppStore'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, TrendingUp, AlertTriangle, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { getConfidenceColor, getConfidenceColorClass } from '@/lib/ui'
 import { calculateDynamicBasketScore } from '@/lib/scoring'
 import { ScoreBreakdown } from '@/components/ui/ScoreBreakdown'
+import { LivePriceBadge } from '@/components/ui/LivePriceBadge'
 
 export default function BasketDetailPage() {
   const { id } = useParams()
-  const { baskets, marketRegime } = useAppStore()
+  const { baskets, marketRegime, fetchLiveQuotes } = useAppStore()
   const router = useRouter()
   const [showDetails, setShowDetails] = useState(false)
   const basket = baskets.find((b) => b.id === id)
@@ -21,6 +22,13 @@ export default function BasketDetailPage() {
       バスケットが見つかりません
     </div>
   )
+
+  useEffect(() => {
+    if (basket) {
+      fetchLiveQuotes(basket.etfs.map(e => e.ticker))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [basket?.id, fetchLiveQuotes])
 
   const riskColor = { low: 'var(--success)', medium: 'var(--warning)', high: 'var(--danger)', 'very-high': '#e05757' }[basket.risk_level]
   const riskLabel = { low: '低リスク', medium: '中リスク', high: '高リスク', 'very-high': '非常に高い' }[basket.risk_level]
@@ -114,6 +122,7 @@ export default function BasketDetailPage() {
               <a href={`https://finance.yahoo.com/quote/${etf.ticker}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 16, fontWeight: 800, color: 'var(--accent)', textDecoration: 'none' }}>
                 {etf.ticker} <ExternalLink size={14} />
               </a>
+              <LivePriceBadge symbol={etf.ticker} />
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{etf.name}</span>
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>{etf.description}</p>

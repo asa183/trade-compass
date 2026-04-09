@@ -7,40 +7,27 @@ import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 
 export default function PaperTradesPage() {
-  const { paperTrades, closePaperTrade } = useAppStore()
+  const { paperTrades, closePaperTrade, liveQuotes, fetchLiveQuotes } = useAppStore()
   const [closeModal, setCloseModal] = useState<{ tradeId: string; entryPrice: number } | null>(null)
   const [exitPrice, setExitPrice] = useState('')
   const [exitReason, setExitReason] = useState<'take-profit' | 'stop-loss' | 'manual'>('manual')
-  const [liveQuotes, setLiveQuotes] = useState<Record<string, number>>({})
 
   const openTrades = paperTrades.filter((t) => t.status === 'open')
   const closedTrades = paperTrades.filter((t) => t.status === 'closed')
 
   useEffect(() => {
-    async function fetchQuotes() {
+    function loadQuotes() {
       if (openTrades.length === 0) return
-      
       const symbols = Array.from(new Set(openTrades.map(t => t.deal.target_etfs[0]?.ticker).filter(Boolean)))
-      if (symbols.length === 0) return
-      
-      try {
-        const res = await fetch(`/api/market/quotes?symbols=${symbols.join(',')}`)
-        if (res.ok) {
-          const data = await res.json()
-          if (data.quotes) {
-            setLiveQuotes(prev => ({ ...prev, ...data.quotes }))
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch live quotes', err)
+      if (symbols.length > 0) {
+        fetchLiveQuotes(symbols)
       }
     }
     
-    fetchQuotes()
-    const intervalId = setInterval(fetchQuotes, 60000)
+    loadQuotes()
+    const intervalId = setInterval(loadQuotes, 60000)
     return () => clearInterval(intervalId)
-  }, [openTrades])
-
+  }, [openTrades, fetchLiveQuotes])
 
   const handleClose = async () => {
     if (!closeModal) return
@@ -115,7 +102,8 @@ export default function PaperTradesPage() {
 
                 {(() => {
                   const targetTicker = t.deal.target_etfs[0]?.ticker
-                  const currentPrice = targetTicker ? liveQuotes[targetTicker] : undefined
+                  const quote = targetTicker ? liveQuotes[targetTicker] : undefined
+                  const currentPrice = quote?.price
                   const diffPct = currentPrice ? ((currentPrice - t.entry_price) / t.entry_price) * 100 : undefined
                   const isUp = diffPct !== undefined && diffPct >= 0
                   
@@ -164,8 +152,8 @@ export default function PaperTradesPage() {
                   style={{ fontSize: 13 }}
                   onClick={() => { 
                     const targetTicker = t.deal.target_etfs[0]?.ticker
-                    const currentPrice = targetTicker ? liveQuotes[targetTicker] : undefined
-                    const prefillPrice = currentPrice ?? t.entry_price
+                    const quote = targetTicker ? liveQuotes[targetTicker] : undefined
+                    const prefillPrice = quote?.price ?? t.entry_price
                     setCloseModal({ tradeId: t.id, entryPrice: t.entry_price }); 
                     setExitPrice(prefillPrice.toFixed(2)) 
                   }}
