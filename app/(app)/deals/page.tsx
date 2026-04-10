@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { AlertTriangle, ChevronRight, Zap, Shield, TrendingUp, Clock } from 'lucide-react'
 import { Deal } from '@/types'
 import { LivePriceBadge } from '@/components/ui/LivePriceBadge'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { PaperTradeCard } from '@/components/ui/PaperTradeCard'
 
 const RISK_LABEL: Record<string, string> = { low: '低', medium: '中', high: '高', 'very-high': '最高' }
 const RISK_COLOR: Record<string, string> = { low: 'var(--success)', medium: 'var(--warning)', high: 'var(--danger)', 'very-high': '#e05757' }
@@ -116,16 +117,21 @@ function DealCard({ deal }: { deal: Deal }) {
 }
 
 export default function DealsPage() {
-  const { deals, fetchLiveQuotes } = useAppStore()
+  const { deals, fetchLiveQuotes, paperTrades, liveQuotes } = useAppStore()
   const activeDeals = deals.filter((d) => d.status === 'active')
+  const openPaperTrades = paperTrades.filter((t) => t.status === 'open')
+  const [activeTab, setActiveTab] = useState<'suggestions' | 'ongoing'>('suggestions')
 
   useEffect(() => {
-    if (activeDeals.length > 0) {
-      const symbols = Array.from(new Set(activeDeals.flatMap(d => d.target_etfs.map(e => e.ticker))))
+    const dealSymbols = activeDeals.flatMap(d => d.target_etfs.map(e => e.ticker))
+    const tradeSymbols = openPaperTrades.flatMap(t => t.deal.target_etfs.map(e => e.ticker))
+    const symbols = Array.from(new Set([...dealSymbols, ...tradeSymbols]))
+    
+    if (symbols.length > 0) {
       fetchLiveQuotes(symbols)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deals.length, fetchLiveQuotes])
+  }, [deals.length, paperTrades.length, fetchLiveQuotes])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -149,38 +155,88 @@ export default function DealsPage() {
         </div>
       </div>
 
-      {/* アクティブなディール */}
-      <div>
-        <div className="section-header">
-          <span className="section-title">現在のディール</span>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{activeDeals.length}件</span>
-        </div>
-        {activeDeals.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-            <Shield size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
-            <div>現在アクティブなディールはありません</div>
-            <div style={{ fontSize: 12, marginTop: 4 }}>市場条件が整い次第、新しいディールが追加されます</div>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {activeDeals.map((d) => <DealCard key={d.id} deal={d} />)}
-          </div>
-        )}
+      {/* タブ切り替え */}
+      <div style={{ display: 'flex', gap: 8, background: 'var(--bg-elevated)', padding: 4, borderRadius: 'var(--radius-lg)' }}>
+        <button
+          onClick={() => setActiveTab('suggestions')}
+          style={{ flex: 1, padding: '8px 0', border: 'none', background: activeTab === 'suggestions' ? 'var(--bg-card)' : 'transparent', color: activeTab === 'suggestions' ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: activeTab === 'suggestions' ? 700 : 500, borderRadius: 'var(--radius-md)', transition: '0.2s', boxShadow: activeTab === 'suggestions' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none', cursor: 'pointer' }}
+        >
+          おすすめ
+        </button>
+        <button
+          onClick={() => setActiveTab('ongoing')}
+          style={{ flex: 1, padding: '8px 0', border: 'none', background: activeTab === 'ongoing' ? 'var(--bg-card)' : 'transparent', color: activeTab === 'ongoing' ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: activeTab === 'ongoing' ? 700 : 500, borderRadius: 'var(--radius-md)', transition: '0.2s', boxShadow: activeTab === 'ongoing' ? '0 2px 8px rgba(0,0,0,0.2)' : 'none', cursor: 'pointer' }}
+        >
+          進行中のディール
+        </button>
       </div>
 
-      {/* 見送りも価値がある */}
-      <div style={{ padding: '14px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-          <TrendingUp size={16} color="var(--neutral)" style={{ flexShrink: 0, marginTop: 1 }} />
+      {activeTab === 'suggestions' ? (
+        <>
+          {/* アクティブなディール */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--neutral)', marginBottom: 4 }}>見送りも立派な判断です</div>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              条件がそろわない時に待つことは、感情的な損失を防ぐ最も効果的な行動のひとつです。
-              見送りの記録も、あなたの成長データになります。
-            </p>
+            <div className="section-header">
+              <span className="section-title">おすすめディール</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{activeDeals.length}件</span>
+            </div>
+            {activeDeals.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                <Shield size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
+                <div>現在アクティブなディールはありません</div>
+                <div style={{ fontSize: 12, marginTop: 4 }}>市場条件が整い次第、新しいディールが追加されます</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {activeDeals.map((d) => <DealCard key={d.id} deal={d} />)}
+              </div>
+            )}
           </div>
+
+          {/* 見送りも価値がある */}
+          <div style={{ padding: '14px', background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <TrendingUp size={16} color="var(--neutral)" style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--neutral)', marginBottom: 4 }}>見送りも立派な判断です</div>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  条件がそろわない時に待つことは、感情的な損失を防ぐ最も効果的な行動のひとつです。
+                  見送りの記録も、あなたの成長データになります。
+                </p>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div>
+          <div className="section-header">
+            <span className="section-title">進行中のペーパートレード</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{openPaperTrades.length}件</span>
+          </div>
+          {openPaperTrades.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+              <Shield size={32} style={{ marginBottom: 8, opacity: 0.4 }} />
+              <div>現在進行中の模擬ディールはありません</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {openPaperTrades.map((t) => (
+                <PaperTradeCard
+                  key={t.id}
+                  trade={t}
+                  liveQuotes={liveQuotes}
+                  actionButton={
+                    <Link href={`/paper-trades`} style={{ textDecoration: 'none' }}>
+                      <button className="btn btn-secondary btn-full" style={{ fontSize: 13, marginTop: 6 }}>
+                        詳細・決済画面へ
+                      </button>
+                    </Link>
+                  }
+                />
+              ))}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* 免責 */}
       <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.6, paddingBottom: 8 }}>
