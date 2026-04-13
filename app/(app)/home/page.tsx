@@ -15,6 +15,7 @@ import {
   Zap,
   TrendingUp,
   BookOpen,
+  ExternalLink
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -383,14 +384,26 @@ export default function HomePage() {
                       <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>
                         {deal.name_ja}
                       </div>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'flex-start', marginTop: 4 }}>
                         {deal.target_etfs.map((e) => (
-                          <div key={e.ticker} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <span className="badge badge-accent">{e.ticker}</span>
-                            <LivePriceBadge symbol={e.ticker} />
+                          <div key={e.ticker} style={{ display: 'flex', flexDirection: 'column', gap: 4, background: 'var(--bg-elevated)', padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <button 
+                                onClick={(ev) => { ev.preventDefault(); window.open(`https://finance.yahoo.com/quote/${e.ticker}`, '_blank'); }}
+                                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                              >
+                                <span className="badge badge-accent" style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                                  {e.ticker} <ExternalLink size={10} />
+                                </span>
+                              </button>
+                              <LivePriceBadge symbol={e.ticker} />
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-secondary)', maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={e.name}>
+                              {e.name}
+                            </div>
                           </div>
                         ))}
-                        <span className={`badge badge-${deal.risk_level === 'low' ? 'success' : deal.risk_level === 'high' ? 'danger' : 'warning'}`}>
+                        <span className={`badge badge-${deal.risk_level === 'low' ? 'success' : deal.risk_level === 'high' ? 'danger' : 'warning'}`} style={{ marginTop: 6 }}>
                           リスク{RISK_LABEL[deal.risk_level]}
                         </span>
                       </div>
