@@ -129,10 +129,14 @@ function DealCard({ deal }: { deal: Deal }) {
 }
 
 export default function DealsPage() {
-  const { deals, fetchLiveQuotes, paperTrades, liveQuotes } = useAppStore()
+  const { deals, fetchLiveQuotes, paperTrades, liveQuotes, fetchBaskets } = useAppStore()
   const activeDeals = deals.filter((d) => d.status === 'active')
   const openPaperTrades = paperTrades.filter((t) => t.status === 'open')
   const [activeTab, setActiveTab] = useState<'suggestions' | 'ongoing'>('suggestions')
+
+  useEffect(() => {
+    fetchBaskets()
+  }, [fetchBaskets])
 
   useEffect(() => {
     const dealSymbols = activeDeals.flatMap(d => d.target_etfs.map(e => e.ticker))
